@@ -1,0 +1,24 @@
+# Python local server files
+serve_https.py
+key.pem
+cert.pem
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS-generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE/Editor specific files
+.vscode/
+.idea/
+*.swp
+*~

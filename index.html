@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>MarketLocations - Save Your Market Spots</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#007bff">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.svg">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>MarketLocations</h1>
+        </header>
+
+        <main>
+            <section id="actions-section">
+                <h2>Actions</h2>
+                <button id="addLocationBtn">Add Current Location</button>
+                <button id="clearListBtn">Clear All Locations</button>
+                <button id="exportXmlBtn">Export as XML</button>
+            </section>
+
+            <section id="location-form-section" class="hidden">
+                <h2><span id="form-title">Add New</span> Location</h2>
+                <input type="hidden" id="locationId">
+                <div>
+                    <label for="locationLabel">Label:</label>
+                    <input type="text" id="locationLabel" placeholder="E.g., Home, Work, Park Entrance">
+                </div>
+                <div>
+                    <label for="locationLat">Latitude:</label>
+                    <input type="text" id="locationLat" readonly>
+                </div>
+                <div>
+                    <label for="locationLng">Longitude:</label>
+                    <input type="text" id="locationLng" readonly>
+                </div>
+                <button id="saveLocationBtn">Save Location</button>
+                <button id="cancelFormBtn">Cancel</button>
+            </section>
+
+            <section id="locations-list-section">
+                <h2>Saved Locations</h2>
+                <ul id="locationsList"></ul>
+                <p id="no-locations-message" class="hidden">No locations saved yet.</p>
+            </section>
+
+            <section id="map-section">
+                <h2>Map</h2>
+                <div id="map"></div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2024 MarketLocations</p>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="script.js"></script>
+</body>
+</html>

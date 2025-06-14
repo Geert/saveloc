@@ -11,54 +11,61 @@
     <link rel="apple-touch-icon" href="icons/icon-192x192.svg">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>MarketLocations</h1>
-        </header>
+    <div id="top-bar">
+        <button id="addLocationBtn">Add New Location</button>
+        <div class="spacer"></div>
+        <button id="hamburgerBtn" aria-label="Menu">☰</button>
+    </div>
 
-        <main>
-            <section id="actions-section">
-                <h2>Actions</h2>
-                <button id="addLocationBtn">Add Current Location</button>
-                <button id="clearListBtn">Clear All Locations</button>
-                <button id="exportXmlBtn">Export as XML</button>
-            </section>
+    <div id="map"></div>
 
-            <section id="location-form-section" class="hidden">
-                <h2><span id="form-title">Add New</span> Location</h2>
-                <input type="hidden" id="locationId">
-                <div>
-                    <label for="locationLabel">Label:</label>
-                    <input type="text" id="locationLabel" placeholder="E.g., Home, Work, Park Entrance">
-                </div>
-                <div>
-                    <label for="locationLat">Latitude:</label>
-                    <input type="text" id="locationLat" readonly>
-                </div>
-                <div>
-                    <label for="locationLng">Longitude:</label>
-                    <input type="text" id="locationLng" readonly>
-                </div>
-                <button id="saveLocationBtn">Save Location</button>
-                <button id="cancelFormBtn">Cancel</button>
-            </section>
-
-            <section id="locations-list-section">
-                <h2>Saved Locations</h2>
+    <div id="bottom-drawer">
+        <div class="drawer-header">
+            <h3>Menu</h3>
+            <button id="closeDrawerBtn" aria-label="Close menu">×</button>
+        </div>
+        <div class="drawer-content">
+            <button id="clearListBtn">Clear All Locations</button>
+            <button id="exportXmlBtn">Export as XML</button>
+            <button id="importXmlBtnTrigger">Import XML</button>
+            <input type="file" id="importXmlInput" accept=".xml" style="display: none;">
+            
+            <section id="locations-list-section-drawer">
+                <h4>Saved Locations</h4>
                 <ul id="locationsList"></ul>
                 <p id="no-locations-message" class="hidden">No locations saved yet.</p>
             </section>
-
-            <section id="map-section">
-                <h2>Map</h2>
-                <div id="map"></div>
-            </section>
-        </main>
-
-        <footer>
-            <p>&copy; 2024 MarketLocations</p>
-        </footer>
+        </div>
     </div>
+
+    <!-- Location Form (modal) -->
+    <section id="location-form-section" class="hidden">
+        <div class="form-content">
+            <h2><span id="form-title">Add New</span> Location</h2>
+            <input type="hidden" id="locationId">
+            <div>
+                <label for="locationLabel">Label:</label>
+                <input type="text" id="locationLabel" placeholder="E.g., Home, Work, Park Entrance">
+            </div>
+            <div>
+                <label for="locationLat">Latitude:</label>
+                <input type="text" id="locationLat" readonly>
+            </div>
+            <div>
+                <label for="locationLng">Longitude:</label>
+                <input type="text" id="locationLng" readonly>
+            </div>
+            <button id="saveLocationBtn">Save Location</button>
+            <button id="cancelFormBtn">Cancel</button>
+        </div>
+    </section>
+
+    <!-- Footer can be minimal or removed if drawer takes up space -->
+    <!-- 
+    <footer>
+        <p>&copy; 2024 MarketLocations</p>
+    </footer> 
+    -->
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="script.js"></script>

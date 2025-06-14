@@ -18,16 +18,51 @@ document.addEventListener('DOMContentLoaded', () => {
     const locationsListUL = document.getElementById('locationsList');
     const noLocationsMessage = document.getElementById('no-locations-message');
 
+    // New UI elements for drawer/menu
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const bottomDrawer = document.getElementById('bottom-drawer');
+    const closeDrawerBtn = document.getElementById('closeDrawerBtn');
+    const importXmlBtnTrigger = document.getElementById('importXmlBtnTrigger');
+    const importXmlInput = document.getElementById('importXmlInput');
+
     // --- Map Initialization ---
     let map = null;
     let markersLayer = null; // Layer group for markers
 
     function initMap() {
         map = L.map('map').setView([51.505, -0.09], 2); // Default view
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-        markersLayer = L.layerGroup().addTo(map);
+        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 20
+        });
+
+        const cartoPositron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        });
+
+        const cartoDarkMatter = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        });
+
+        // Set default layer
+        osmLayer.addTo(map);
+
+        const baseMaps = {
+            "OpenStreetMap": osmLayer,
+            "Carto Light": cartoPositron,
+            "Carto Dark": cartoDarkMatter
+        };
+
+        markersLayer = L.layerGroup().addTo(map); // Initialize markersLayer
+        const overlayMaps = {
+            "Locations": markersLayer
+        };
+
+        L.control.layers(baseMaps, overlayMaps).addTo(map);
     }
 
     // --- Local Storage --- 
@@ -39,6 +74,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- UI Rendering ---
+
+    function createLabelIcon(labelText, locId) {
+        const displayLabel = labelText && labelText.trim() !== '' ? labelText.substring(0, 15) : '📍'; // Show first 15 chars or a pin
+        // Ensure unique class for potential specific styling or selection if needed, though not strictly necessary for DivIcon content
+        return L.divIcon({
+            html: `<div class="custom-label-marker-text">${displayLabel.replace(/[<>&'"\/]/g, c => '&#' + c.charCodeAt(0) + ';')}</div>`,
+            className: 'custom-label-marker location-marker-' + locId, // Add unique class if needed
+            iconSize: null, // Auto-size based on content by default, or [width, height]
+            iconAnchor: [20, 10], // Adjust anchor: [half-width, half-height-ish] based on expected size
+            popupAnchor: [0, -10] // Adjust popup anchor relative to iconAnchor
+        });
+    }
+
     function renderLocationsList() {
         locationsListUL.innerHTML = ''; // Clear existing list
         markersLayer.clearLayers(); // Clear existing map markers
@@ -93,8 +141,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Add marker to map
             if (map) {
-                const marker = L.marker([loc.lat, loc.lng]).addTo(markersLayer);
-                marker.bindPopup(`<b>${loc.label || 'Unnamed Location'}</b><br>Lat: ${loc.lat.toFixed(5)}<br>Lng: ${loc.lng.toFixed(5)}`);
+                const customIcon = createLabelIcon(loc.label, loc.id);
+                const marker = L.marker([loc.lat, loc.lng], { 
+                    icon: customIcon, 
+                    draggable: true 
+                })
+                .addTo(markersLayer)
+                .bindPopup(`<b>${loc.label || 'Unnamed Location'}</b><br>Lat: ${loc.lat.toFixed(5)}, Lng: ${loc.lng.toFixed(5)}`);
+                
+                marker.locationId = loc.id; // Store ID for easy access
+
+                marker.on('dragend', function(event) {
+                    const newLatLng = event.target.getLatLng();
+                    const draggedLocationId = event.target.locationId;
+                    
+                    const locationIndex = locations.findIndex(l => l.id === draggedLocationId);
+                    if (locationIndex > -1) {
+                        locations[locationIndex].lat = newLatLng.lat;
+                        locations[locationIndex].lng = newLatLng.lng;
+                        saveLocations();
+
+                        // Update the list item text
+                        const listItem = locationsListUL.querySelector(`li[data-id='${draggedLocationId}']`);
+                        if (listItem) {
+                            const coordsSpan = listItem.querySelector('.location-coords');
+                            if (coordsSpan) {
+                                coordsSpan.textContent = ` (Lat: ${newLatLng.lat.toFixed(5)}, Lng: ${newLatLng.lng.toFixed(5)})`;
+                            }
+                        }
+                        // Update popup content if open
+                        if (marker.isPopupOpen()) {
+                            marker.setPopupContent(`<b>${locations[locationIndex].label || 'Unnamed Location'}</b><br>Lat: ${newLatLng.lat.toFixed(5)}, Lng: ${newLatLng.lng.toFixed(5)}`).openPopup();
+                        }
+                        console.log(`Location ${draggedLocationId} updated to Lat: ${newLatLng.lat}, Lng: ${newLatLng.lng}`);
+                    } else {
+                        console.error('Could not find dragged location in array');
+                    }
+                });
+
                 bounds.push([loc.lat, loc.lng]);
             }
         });
@@ -272,6 +356,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     showLocationForm('add'); // Show form
                     locationLatInput.value = position.coords.latitude; // Pre-fill
                     locationLngInput.value = position.coords.longitude; // Pre-fill
+                    const nextLabelNumberSuccess = locations.length + 1;
+                    locationLabelInput.value = nextLabelNumberSuccess.toString(); // Pre-fill numeric label
                     locationLabelInput.focus(); // Focus on label input
                 },
                 (error) => { // Ensure 'error' is defined in this scope
@@ -281,6 +367,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     showLocationForm('add'); 
                     locationLatInput.value = '';
                     locationLngInput.value = '';
+                    const nextLabelNumberError = locations.length + 1;
+                    locationLabelInput.value = nextLabelNumberError.toString(); // Pre-fill numeric label
                 },
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
@@ -294,6 +382,125 @@ document.addEventListener('DOMContentLoaded', () => {
     exportXmlBtn.addEventListener('click', exportToXml);
     saveLocationBtn.addEventListener('click', addOrUpdateLocation);
     cancelFormBtn.addEventListener('click', hideLocationForm);
+
+    // --- XML Import ---
+    if (importXmlBtnTrigger && importXmlInput) {
+        importXmlBtnTrigger.addEventListener('click', () => {
+            importXmlInput.click(); // Trigger hidden file input
+        });
+
+        importXmlInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                console.log('File selected for import:', file.name);
+                const reader = new FileReader();
+
+                reader.onload = (e) => {
+                    try {
+                        const xmlString = e.target.result;
+                        const parser = new DOMParser();
+                        const xmlDoc = parser.parseFromString(xmlString, "application/xml");
+
+                        const parserErrors = xmlDoc.getElementsByTagName("parsererror");
+                        if (parserErrors.length > 0) {
+                            console.error('XML Parsing Error:', parserErrors[0].textContent);
+                            alert('Error parsing XML file. Please ensure it is a valid XML.');
+                            event.target.value = null; // Reset file input
+                            return;
+                        }
+
+                        const xmlPlaatsen = xmlDoc.getElementsByTagName("plaatsen");
+                        let importedCount = 0;
+                        const newLocations = [];
+
+                        for (let i = 0; i < xmlPlaatsen.length; i++) {
+                            const plaats = xmlPlaatsen[i];
+                            const xmlIdNode = plaats.getElementsByTagName("id")[0];
+                            const latNode = plaats.getElementsByTagName("lat")[0];
+                            const lngNode = plaats.getElementsByTagName("lng")[0];
+                            const labelNode = plaats.getElementsByTagName("label")[0];
+
+                            const xmlId = xmlIdNode ? xmlIdNode.textContent.trim() : '';
+                            const lat = latNode ? parseFloat(latNode.textContent) : null;
+                            const lng = lngNode ? parseFloat(lngNode.textContent) : null;
+                            let label = labelNode ? labelNode.textContent.trim() : '';
+
+                            if (lat === null || isNaN(lat) || lng === null || isNaN(lng)) {
+                                console.warn('Skipping invalid location entry from XML (missing/invalid lat/lng):', plaats.innerHTML);
+                                continue;
+                            }
+
+                            if (label === '') {
+                                label = xmlId || `Imported ${Date.now().toString().slice(-4)}`; // Use XML ID or a generic fallback
+                            }
+
+                            const newAppId = Date.now().toString() + '-' + Math.random().toString(36).substr(2, 9);
+
+                            newLocations.push({
+                                id: newAppId,
+                                lat: lat,
+                                lng: lng,
+                                label: label
+                            });
+                            importedCount++;
+                        }
+
+                        if (newLocations.length > 0) {
+                            locations.push(...newLocations);
+                            saveLocations();
+                            renderLocationsList();
+                            alert(`${importedCount} location(s) imported successfully!`);
+                        } else {
+                            alert('No valid locations found in the XML file to import.');
+                        }
+
+                    } catch (error) {
+                        console.error('Error processing XML file:', error);
+                        alert('An error occurred while importing the file.');
+                    }
+                    // Reset file input to allow importing the same file again if needed
+                    event.target.value = null; 
+                };
+
+                reader.onerror = () => {
+                    console.error('Error reading file:', reader.error);
+                    alert('Error reading the selected file.');
+                    event.target.value = null; // Reset file input
+                };
+
+                reader.readAsText(file);
+            }
+        });
+    } else {
+        console.error('Import XML buttons not found.');
+    }
+
+    // Hamburger menu and drawer functionality
+    if (hamburgerBtn && bottomDrawer && closeDrawerBtn) {
+        hamburgerBtn.addEventListener('click', () => {
+            console.log('Hamburger button clicked');
+            console.log('Drawer classList BEFORE toggle:', bottomDrawer.classList);
+            bottomDrawer.classList.toggle('visible');
+            console.log('Drawer classList AFTER toggle:', bottomDrawer.classList);
+            // Invalidate map size after drawer animation
+            setTimeout(() => {
+                if (map) map.invalidateSize();
+            }, 300); // Corresponds to CSS transition time
+        });
+
+        closeDrawerBtn.addEventListener('click', () => {
+            console.log('Close drawer button clicked');
+            console.log('Drawer classList BEFORE remove (close):', bottomDrawer.classList);
+            bottomDrawer.classList.remove('visible');
+            console.log('Drawer classList AFTER remove (close):', bottomDrawer.classList);
+            // Invalidate map size after drawer animation
+            setTimeout(() => {
+                if (map) map.invalidateSize();
+            }, 300); // Corresponds to CSS transition time
+        });
+    } else {
+        console.error('Hamburger menu buttons or drawer not found. UI may not function as expected.');
+    }
 
     // --- Initial Load ---
     initMap();

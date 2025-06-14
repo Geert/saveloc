@@ -6,14 +6,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearListBtn = document.getElementById('clearListBtn');
     const exportXmlBtn = document.getElementById('exportXmlBtn');
     const saveLocationBtn = document.getElementById('saveLocationBtn');
-    const cancelFormBtn = document.getElementById('cancelFormBtn');
-
     const locationFormSection = document.getElementById('location-form-section');
-    const formTitle = document.getElementById('form-title');
-    const locationIdInput = document.getElementById('locationId');
-    const locationLabelInput = document.getElementById('locationLabel');
-    const locationLatInput = document.getElementById('locationLat');
-    const locationLngInput = document.getElementById('locationLng');
+    const locationForm = document.getElementById('location-form');
+    const locationFormTitle = document.getElementById('location-form-title');
+    const locationIdInput = document.getElementById('locationId'); // For new locations (modal)
+    const locationLabelInput = document.getElementById('locationLabel'); // For new locations (modal)
+    const locationLatInput = document.getElementById('locationLat'); // For new locations (modal)
+    const locationLngInput = document.getElementById('locationLng'); // For new locations (modal)
+    // saveLocationBtn (for modal) is declared on line 8
+    const cancelFormBtn = document.getElementById('cancelFormBtn'); // For new locations (modal)
+
+    // Drawer Edit Form Elements
+    const editFormDrawerSection = document.getElementById('edit-form-drawer-section');
+    const editFormDrawerTitle = document.getElementById('edit-form-drawer-title');
+    const editLocationIdDrawerInput = document.getElementById('editLocationIdDrawer');
+    const editLocationLabelDrawerInput = document.getElementById('editLocationLabelDrawer');
+    const editLocationLatDrawerInput = document.getElementById('editLocationLatDrawer');
+    const editLocationLngDrawerInput = document.getElementById('editLocationLngDrawer');
+    const saveLocationDrawerBtn = document.getElementById('saveLocationDrawerBtn');
+    const cancelEditDrawerBtn = document.getElementById('cancelEditDrawerBtn');
 
     const locationsListUL = document.getElementById('locationsList');
     const noLocationsMessage = document.getElementById('no-locations-message');
@@ -24,6 +35,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeDrawerBtn = document.getElementById('closeDrawerBtn');
     const importXmlBtnTrigger = document.getElementById('importXmlBtnTrigger');
     const importXmlInput = document.getElementById('importXmlInput');
+    const drawerContent = document.getElementById('drawer-main-content');
+    const editModeBtn = document.getElementById('editModeBtn');
+
+    // --- App State ---
+    let isInEditMode = false;
 
     // --- Map Initialization ---
     let map = null;
@@ -48,14 +64,25 @@ document.addEventListener('DOMContentLoaded', () => {
             maxZoom: 20
         });
 
-        // Set default layer
-        osmLayer.addTo(map);
-
+        // Define baseMaps first to check preferred layer
         const baseMaps = {
             "OpenStreetMap": osmLayer,
             "Carto Light": cartoPositron,
             "Carto Dark": cartoDarkMatter
         };
+
+        // Load preferred layer or set default
+        const preferredLayerName = localStorage.getItem(PREFERRED_MAP_LAYER_KEY);
+        let defaultLayer = osmLayer; // Default to OSM
+        if (preferredLayerName && baseMaps[preferredLayerName]) {
+            defaultLayer = baseMaps[preferredLayerName];
+            console.log('Loading preferred map layer:', preferredLayerName);
+        } else {
+            console.log('No valid preferred map layer found, defaulting to OpenStreetMap.');
+        }
+        defaultLayer.addTo(map);
+
+
 
         markersLayer = L.layerGroup().addTo(map); // Initialize markersLayer
         const overlayMaps = {
@@ -63,10 +90,17 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         L.control.layers(baseMaps, overlayMaps).addTo(map);
+
+        // Listen for base layer changes to save preference
+        map.on('baselayerchange', function(e) {
+            console.log('Base layer changed to:', e.name);
+            localStorage.setItem(PREFERRED_MAP_LAYER_KEY, e.name);
+        });
     }
 
     // --- Local Storage --- 
     const STORAGE_KEY = 'savedLocations';
+    const PREFERRED_MAP_LAYER_KEY = 'preferredMapLayerName';
     let locations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 
     function saveLocations() {
@@ -125,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const editBtn = document.createElement('button');
             editBtn.textContent = 'Edit';
             editBtn.className = 'edit-btn';
-            editBtn.onclick = () => showEditForm(loc.id);
+            editBtn.onclick = () => showLocationForm('edit', loc);
 
             const deleteBtn = document.createElement('button');
             deleteBtn.textContent = 'Delete';
@@ -144,13 +178,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const customIcon = createLabelIcon(loc.label, loc.id);
                 const marker = L.marker([loc.lat, loc.lng], { 
                     icon: customIcon, 
-                    draggable: true 
+                    draggable: isInEditMode // Initially not draggable unless in edit mode
                 })
-                .addTo(markersLayer)
-                .bindPopup(`<b>${loc.label || 'Unnamed Location'}</b><br>Lat: ${loc.lat.toFixed(5)}, Lng: ${loc.lng.toFixed(5)}`);
+                .addTo(markersLayer);
                 
                 marker.locationId = loc.id; // Store ID for easy access
 
+                // Original dragend logic, now also disables dragging
                 marker.on('dragend', function(event) {
                     const newLatLng = event.target.getLatLng();
                     const draggedLocationId = event.target.locationId;
@@ -173,12 +207,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (marker.isPopupOpen()) {
                             marker.setPopupContent(`<b>${locations[locationIndex].label || 'Unnamed Location'}</b><br>Lat: ${newLatLng.lat.toFixed(5)}, Lng: ${newLatLng.lng.toFixed(5)}`).openPopup();
                         }
-                        console.log(`Location ${draggedLocationId} updated to Lat: ${newLatLng.lat}, Lng: ${newLatLng.lng}`);
+                                        // The marker should remain draggable while in Edit Mode.
+                        // The inefficient renderLocationsList() call is also removed.
+                        alert('Location position updated!');
                     } else {
                         console.error('Could not find dragged location in array');
+                        // In the new UX, we don't disable dragging here.
                     }
-                });
+                }); // End of marker.on('dragend', ...)
 
+                marker.on('click', () => {
+                    showLocationForm('edit', loc);
+                });
                 bounds.push([loc.lat, loc.lng]);
             }
         });
@@ -189,24 +229,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Form Handling ---
-    function showLocationForm(type = 'add', location = null) {
-        locationFormSection.classList.remove('hidden');
-        if (type === 'add') {
-            formTitle.textContent = 'Add New';
-            locationIdInput.value = '';
-            locationLabelInput.value = '';
-            // Geolocation will fill lat/lng
-            getCurrentLocation(true); // true to indicate it's for the form
-        } else if (type === 'edit' && location) {
-            formTitle.textContent = 'Edit';
-            locationIdInput.value = location.id;
-            locationLabelInput.value = location.label;
-            locationLatInput.value = location.lat;
-            locationLngInput.value = location.lng;
-            // Ask if user wants to update to current location for this edit
-            if (confirm("Update coordinates to current location?")) {
-                getCurrentLocation(true);
-            }
+    function showLocationForm(type, data = {}) {
+        // Type can be 'new' or 'edit'
+        if (type === 'edit') {
+            // Show edit form in drawer
+            bottomDrawer.classList.add('visible'); // Ensure drawer is open
+            editFormDrawerSection.classList.remove('hidden'); // Show edit form section
+
+            editFormDrawerTitle.textContent = 'Edit Location';
+            editLocationIdDrawerInput.value = data.id;
+            editLocationLabelDrawerInput.value = data.label || '';
+            editLocationLatDrawerInput.value = data.lat.toFixed(6);
+            editLocationLngDrawerInput.value = data.lng.toFixed(6);
+            // Note: Lat/Lng in drawer form are readonly, updated by map drag or new coords
+
+        } else { // 'new'
+            // Show new location form in modal (existing behavior)
+            locationFormTitle.textContent = 'Add New Location';
+            locationIdInput.value = ''; // Clear ID for new location
+            locationLabelInput.value = data.label || `Location ${locations.length + 1}`; // Pre-fill or suggest label
+            locationLatInput.value = data.lat ? data.lat.toFixed(6) : '';
+            locationLngInput.value = data.lng ? data.lng.toFixed(6) : '';
+            locationFormSection.classList.remove('hidden');
         }
     }
 
@@ -341,7 +385,35 @@ document.addEventListener('DOMContentLoaded', () => {
         URL.revokeObjectURL(url);
     }
 
+function toggleEditMode() {
+    isInEditMode = !isInEditMode; // Toggle the state
+
+    if (isInEditMode) {
+        // Entering Edit Mode
+        editModeBtn.innerHTML = '✓ Done';
+        editModeBtn.setAttribute('aria-label', 'Exit Edit Mode');
+        markersLayer.eachLayer(marker => {
+            if (marker.dragging) {
+                marker.dragging.enable();
+            }
+        });
+        console.log("Entered Edit Mode. Markers are now draggable.");
+    } else {
+        // Exiting Edit Mode
+        editModeBtn.innerHTML = '✎ Edit';
+        editModeBtn.setAttribute('aria-label', 'Enter Edit Mode');
+        markersLayer.eachLayer(marker => {
+            if (marker.dragging) {
+                marker.dragging.disable();
+            }
+        });
+        console.log("Exited Edit Mode. Markers are no longer draggable.");
+    }
+}
+
     // --- Event Listeners ---
+    editModeBtn.addEventListener('click', toggleEditMode);
+
     addLocationBtn.addEventListener('click', () => {
         console.log('Add Current Location button clicked.');
         // Get current location, then show form with pre-filled coords
@@ -543,4 +615,35 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     */
+
+    // Close drawer on Escape key
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && bottomDrawer.classList.contains('visible')) {
+            if (editFormDrawerSection && !editFormDrawerSection.classList.contains('hidden')) {
+                editFormDrawerSection.classList.add('hidden');
+                if (drawerContent) drawerContent.classList.remove('hidden');
+                // First escape closes edit form, keeps drawer open.
+            } else {
+                bottomDrawer.classList.remove('visible');
+                if (map) setTimeout(() => map.invalidateSize(), 300);
+            }
+        }
+    });
+
+    // Close drawer on click outside
+    document.addEventListener('click', (event) => {
+        if (bottomDrawer.classList.contains('visible') && 
+            !bottomDrawer.contains(event.target) && 
+            (hamburgerBtn && !hamburgerBtn.contains(event.target)) &&
+            (addLocationBtn && !addLocationBtn.contains(event.target)) ) {
+            
+            if (editFormDrawerSection && !editFormDrawerSection.classList.contains('hidden')) {
+                editFormDrawerSection.classList.add('hidden');
+                if (drawerContent) drawerContent.classList.remove('hidden');
+            }
+            bottomDrawer.classList.remove('visible');
+            if (map) setTimeout(() => map.invalidateSize(), 300);
+        }
+    });
+
 });

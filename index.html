@@ -12,7 +12,8 @@
 </head>
 <body>
     <div id="top-bar">
-        <button id="addLocationBtn">Add New Location</button>
+        <button id="addLocationBtn">Add Current Location</button>
+        <button id="editModeBtn" aria-label="Enter Edit Mode">✎ Edit</button>
         <div class="spacer"></div>
         <button id="hamburgerBtn" aria-label="Menu">☰</button>
     </div>
@@ -24,7 +25,7 @@
             <h3>Menu</h3>
             <button id="closeDrawerBtn" aria-label="Close menu">×</button>
         </div>
-        <div class="drawer-content">
+        <div class="drawer-content" id="drawer-main-content">
             <button id="clearListBtn">Clear All Locations</button>
             <button id="exportXmlBtn">Export as XML</button>
             <button id="importXmlBtnTrigger">Import XML</button>
@@ -33,8 +34,35 @@
             <section id="locations-list-section-drawer">
                 <h4>Saved Locations</h4>
                 <ul id="locationsList"></ul>
-                <p id="no-locations-message" class="hidden">No locations saved yet.</p>
+                <div id="no-locations-message" class="hidden">No locations saved yet.</div>
             </section>
+        </div>
+
+        <!-- Edit Form Section within Drawer (hidden by default) -->
+        <div id="edit-form-drawer-section" class="hidden">
+            <div class="drawer-header">
+                <h3 id="edit-form-drawer-title">Edit Location</h3>
+                <!-- No close button here, use form's Cancel button -->
+            </div>
+            <div class="drawer-content">
+                <input type="hidden" id="editLocationIdDrawer">
+                <div>
+                    <label for="editLocationLabelDrawer">Label:</label>
+                    <input type="text" id="editLocationLabelDrawer" placeholder="E.g., Home, Work">
+                </div>
+                <div>
+                    <label for="editLocationLatDrawer">Latitude:</label>
+                    <input type="text" id="editLocationLatDrawer" readonly>
+                </div>
+                <div>
+                    <label for="editLocationLngDrawer">Longitude:</label>
+                    <input type="text" id="editLocationLngDrawer" readonly>
+                </div>
+                <div class="form-buttons-drawer">
+                    <button id="saveLocationDrawerBtn">Save</button>
+                    <button id="cancelEditDrawerBtn">Cancel</button>
+                </div>
+            </div>
         </div>
     </div>
 

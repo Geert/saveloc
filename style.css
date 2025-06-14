@@ -268,6 +268,81 @@ html, body {
     background-color: #5a6268;
 }
 
+/* Edit Form in Drawer Styles */
+#edit-form-drawer-section {
+    /* Takes full space of drawer when visible, flex column like drawer */
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* Or manage height as needed if drawer content scrolls */
+}
+
+#edit-form-drawer-section.hidden {
+    display: none !important;
+}
+
+/* Use existing .drawer-header and .drawer-content for consistency if possible,
+   or define specific styles if needed. Assuming .drawer-content is reused for padding. */
+
+#edit-form-drawer-section label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    margin-top: 10px; /* Spacing between form fields */
+}
+
+#edit-form-drawer-section input[type="text"] {
+    width: 100%; /* Full width within form */
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-sizing: border-box;
+    font-size: 1rem;
+}
+
+#edit-form-drawer-section input[readonly] {
+    background-color: #e9ecef; /* Indicate readonly fields */
+    cursor: not-allowed;
+}
+
+#edit-form-drawer-section .form-buttons-drawer {
+    margin-top: 20px;
+    text-align: right; /* Align buttons to the right, or center/space-between */
+}
+
+#edit-form-drawer-section .form-buttons-drawer button {
+    display: inline-block;
+    vertical-align: middle;
+    width: auto; /* Auto width based on content, or fixed if preferred */
+    min-width: 100px; /* Minimum width */
+    margin-left: 10px; /* Space between buttons if side-by-side */
+    padding: 10px 15px;
+    box-sizing: border-box;
+    border: none;
+    border-radius: 5px;
+    font-size: 0.95rem;
+    color: white;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+
+#edit-form-drawer-section button#saveLocationDrawerBtn {
+    background-color: #28a745; /* Green for save */
+}
+#edit-form-drawer-section button#saveLocationDrawerBtn:hover {
+    background-color: #218838;
+}
+
+#edit-form-drawer-section button#cancelEditDrawerBtn {
+    background-color: #6c757d; /* Grey for cancel */
+}
+#edit-form-drawer-section button#cancelEditDrawerBtn:hover {
+    background-color: #5a6268;
+}
+
+
 /* Hidden class utility */
 .hidden {
     display: none !important;

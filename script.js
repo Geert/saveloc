@@ -725,7 +725,7 @@ function toggleEditMode() {
                             label: nextLabel
                         });
                         addLocationBtn.disabled = false;
-                        addLocationBtn.textContent = 'Add New Location';
+                        addLocationBtn.textContent = 'Add Location';
                     },
                     (error) => {
                         console.error('Error getting location:', error.message, 'Code:', error.code);
@@ -733,7 +733,7 @@ function toggleEditMode() {
                         const nextLabelError = (locations.length + 1).toString();
                         showLocationForm('new', { lat: '', lng: '', label: nextLabelError });
                         addLocationBtn.disabled = false;
-                        addLocationBtn.textContent = 'Add New Location';
+                        addLocationBtn.textContent = 'Add Location';
                     },
                     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                 );

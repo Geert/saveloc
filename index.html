@@ -58,9 +58,10 @@
                     <label for="editLocationLngDrawer">Longitude:</label>
                     <input type="text" id="editLocationLngDrawer" readonly>
                 </div>
-                <div class="form-buttons-drawer">
-                    <button id="saveLocationDrawerBtn">Save</button>
-                    <button id="cancelEditDrawerBtn">Cancel</button>
+                <div class="form-buttons-container">
+                    <button type="button" id="updateLocationToCurrentBtn" class="btn btn-update">🎯 Update to Current</button>
+                    <button type="button" id="saveLocationDrawerBtn" class="btn btn-primary">Save Changes</button>
+                    <button type="button" id="cancelEditDrawerBtn" class="btn btn-secondary">Cancel</button>
                 </div>
             </div>
         </div>
@@ -83,8 +84,10 @@
                 <label for="locationLng">Longitude:</label>
                 <input type="text" id="locationLng" readonly>
             </div>
-            <button id="saveLocationBtn">Save Location</button>
-            <button id="cancelFormBtn">Cancel</button>
+            <div class="form-buttons-container">
+                <button type="button" id="saveLocationBtn" class="btn btn-primary">Save Location</button>
+                <button type="button" id="cancelFormBtn" class="btn btn-secondary">Cancel</button>
+            </div>
         </div>
     </section>
 
@@ -94,6 +97,8 @@
         <p>&copy; 2024 MarketLocations</p>
     </footer> 
     -->
+
+    <div id="notification-container"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="script.js"></script>

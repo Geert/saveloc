@@ -237,43 +237,12 @@ html, body {
     font-size: 1rem;
 }
 
-#location-form-section button {
-    display: inline-block; /* Ensure they can sit side-by-side */
-    vertical-align: middle; /* Align inline-block elements */
-    width: calc(50% - 10px); /* Existing width, should work with box-sizing */
-    margin: 10px 5px 0 5px; /* Existing margin, creates 10px gap between buttons */
-    padding: 12px; /* Existing padding */
-    box-sizing: border-box; /* Crucial for calc() with padding */
-
-    /* Styling for consistency */
-    border: none;
-    border-radius: 5px;
-    font-size: 1rem;
-    color: white; /* Text color */
-    text-align: center; /* Center text in button */
-    cursor: pointer;
-}
-
-#location-form-section button#saveLocationBtn {
-    background-color: #28a745; /* Green for save */
-}
-#location-form-section button#saveLocationBtn:hover {
-    background-color: #218838;
-}
-
-#location-form-section button#cancelFormBtn {
-    background-color: #6c757d;
-}
-#location-form-section button#cancelFormBtn:hover {
-    background-color: #5a6268;
-}
-
 /* Edit Form in Drawer Styles */
 #edit-form-drawer-section {
     /* Takes full space of drawer when visible, flex column like drawer */
     display: flex;
     flex-direction: column;
-    height: 100%; /* Or manage height as needed if drawer content scrolls */
+    flex-grow: 1; /* Allow it to take available space in the flex column */
 }
 
 #edit-form-drawer-section.hidden {
@@ -306,42 +275,96 @@ html, body {
     cursor: not-allowed;
 }
 
-#edit-form-drawer-section .form-buttons-drawer {
-    margin-top: 20px;
-    text-align: right; /* Align buttons to the right, or center/space-between */
+/* General Form Button Styling */
+.form-buttons-container {
+    display: flex;
+    justify-content: flex-end; /* Aligns buttons to the right */
+    gap: 10px; /* Space between buttons */
+    margin-top: 15px; /* Space above the button group */
 }
 
-#edit-form-drawer-section .form-buttons-drawer button {
+.btn {
     display: inline-block;
-    vertical-align: middle;
-    width: auto; /* Auto width based on content, or fixed if preferred */
-    min-width: 100px; /* Minimum width */
-    margin-left: 10px; /* Space between buttons if side-by-side */
+    /* vertical-align: middle; /* Not needed with flex */
+    width: auto;
+    min-width: 100px;
     padding: 10px 15px;
     box-sizing: border-box;
     border: none;
     border-radius: 5px;
-    font-size: 0.95rem;
+    font-size: 1rem;
     color: white;
     text-align: center;
     cursor: pointer;
-    transition: background-color 0.2s ease-in-out;
+    transition: background-color 0.2s ease-in-out; /* Smooth transition for hover */
 }
 
-#edit-form-drawer-section button#saveLocationDrawerBtn {
-    background-color: #28a745; /* Green for save */
+.btn-primary {
+    background-color: #28a745; /* Green */
 }
-#edit-form-drawer-section button#saveLocationDrawerBtn:hover {
-    background-color: #218838;
-}
-
-#edit-form-drawer-section button#cancelEditDrawerBtn {
-    background-color: #6c757d; /* Grey for cancel */
-}
-#edit-form-drawer-section button#cancelEditDrawerBtn:hover {
-    background-color: #5a6268;
+.btn-primary:hover {
+    background-color: #218838; /* Darker green */
 }
 
+.btn-secondary {
+    background-color: #6c757d; /* Grey */
+}
+.btn-secondary:hover {
+    background-color: #5a6268; /* Darker grey */
+}
+
+/* Optional: if update button needs specific style different from primary */
+.btn-update {
+    background-color: #007bff; /* Blue */
+    /* Consider if text should be white or dark depending on contrast */
+}
+
+/* --- Notification Styles --- */
+#notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000; /* High z-index to appear above other content */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-end; /* Align notifications to the right if container spans width */
+}
+
+.notification {
+    background-color: #333;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    opacity: 0; /* Start hidden for animation */
+    transform: translateX(100%); /* Start off-screen to the right for animation */
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    min-width: 250px; /* Minimum width */
+    max-width: 400px; /* Maximum width */
+    font-size: 0.9em;
+}
+
+.notification.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.notification.success {
+    background-color: #4CAF50; /* Green */
+}
+
+.notification.error {
+    background-color: #f44336; /* Red */
+}
+
+.notification.info {
+    background-color: #2196F3; /* Blue */
+}
+
+.btn-update:hover {
+    background-color: #0056b3; /* Darker blue */
+}
 
 /* Hidden class utility */
 .hidden {

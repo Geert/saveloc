@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveLocationBtn = document.getElementById('saveLocationBtn');
     const locationFormSection = document.getElementById('location-form-section');
     const locationForm = document.getElementById('location-form');
-    const locationFormTitle = document.getElementById('location-form-title');
+    const locationFormTitle = document.getElementById('form-title'); // This is the span inside the h2
     const locationIdInput = document.getElementById('locationId'); // For new locations (modal)
     const locationLabelInput = document.getElementById('locationLabel'); // For new locations (modal)
     const locationLatInput = document.getElementById('locationLat'); // For new locations (modal)
@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const editLocationLngDrawerInput = document.getElementById('editLocationLngDrawer');
     const saveLocationDrawerBtn = document.getElementById('saveLocationDrawerBtn');
     const cancelEditDrawerBtn = document.getElementById('cancelEditDrawerBtn');
+    const updateLocationToCurrentBtn = document.getElementById('updateLocationToCurrentBtn');
 
     const locationsListUL = document.getElementById('locationsList');
     const noLocationsMessage = document.getElementById('no-locations-message');
@@ -38,12 +39,64 @@ document.addEventListener('DOMContentLoaded', () => {
     const drawerContent = document.getElementById('drawer-main-content');
     const editModeBtn = document.getElementById('editModeBtn');
 
+    console.log('Initial DOM selection - editFormDrawerSection:', editFormDrawerSection);
+    console.log('Initial DOM selection - drawerContent:', drawerContent);
+
     // --- App State ---
-    let isInEditMode = false;
+    let locations = [];
+
+    // --- Notifications ---
+    const notificationContainer = document.getElementById('notification-container');
+
+    function showNotification(message, type = 'info', duration = 3000) {
+        if (!notificationContainer) {
+            console.error('Notification container not found!');
+            // Fallback to alert if container is missing
+            alert(`${type.toUpperCase()}: ${message}`);
+            return;
+        }
+
+        const notification = document.createElement('div');
+        notification.classList.add('notification', type);
+        notification.textContent = message;
+
+        notificationContainer.appendChild(notification);
+
+        // Trigger the animation
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 10); // Small delay to allow element to be added to DOM before animation starts
+
+        // Remove the notification after duration
+        setTimeout(() => {
+            notification.classList.remove('show');
+            // Wait for fade out animation to complete before removing from DOM
+            setTimeout(() => {
+                if (notification.parentNode === notificationContainer) { // Check if still child
+                     notificationContainer.removeChild(notification);
+                }
+            }, 500); // Matches CSS transition duration
+        }, duration);
+    }
+    let isInEditMode = false; // Tracks if the app is in edit mode for markers
 
     // --- Map Initialization ---
     let map = null;
+    console.log('typeof loadMap after def:', typeof loadMap); // Moved here, after new loadMap def
     let markersLayer = null; // Layer group for markers
+    let markers = {}; // To store individual marker instances, keyed by location.id
+
+    function loadMap() {
+        return new Promise((resolve, reject) => {
+            try {
+                initMap(); // Call the existing map initialization logic
+                resolve(); // Resolve the promise once initMap is done
+            } catch (error) {
+                console.error("Error initializing map in loadMap:", error);
+                reject(error); // Reject if initMap throws an error
+            }
+        });
+    }
 
     function initMap() {
         map = L.map('map').setView([51.505, -0.09], 2); // Default view
@@ -103,11 +156,16 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem(PREFERRED_MAP_LAYER_KEY, e.name);
         });
     }
+    // console.log('typeof initMap after def:', typeof initMap); // Optional: for initMap
 
     // --- Local Storage --- 
     const STORAGE_KEY = 'savedLocations';
     const PREFERRED_MAP_LAYER_KEY = 'preferredMapLayerName';
-    let locations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+
+    function loadLocations() {
+        locations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    }
+    console.log('typeof loadLocations after def:', typeof loadLocations);
 
     function saveLocations() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(locations));
@@ -209,69 +267,104 @@ document.addEventListener('DOMContentLoaded', () => {
                                 coordsSpan.textContent = ` (Lat: ${newLatLng.lat.toFixed(5)}, Lng: ${newLatLng.lng.toFixed(5)})`;
                             }
                         }
-                        // Update popup content if open
+                        // Update popup content if open (MUST be INSIDE the if locationIndex > -1 block)
                         if (marker.isPopupOpen()) {
                             marker.setPopupContent(`<b>${locations[locationIndex].label || 'Unnamed Location'}</b><br>Lat: ${newLatLng.lat.toFixed(5)}, Lng: ${newLatLng.lng.toFixed(5)}`).openPopup();
                         }
-                                        // The marker should remain draggable while in Edit Mode.
-                        // The inefficient renderLocationsList() call is also removed.
-                        alert('Location position updated!');
-                    } else {
-                        console.error('Could not find dragged location in array');
-                        // In the new UX, we don't disable dragging here.
-                    }
-                }); // End of marker.on('dragend', ...)
+                        showNotification('Location position updated!', 'success'); // Also inside if locationIndex > -1
+                } else { // This else correctly belongs to: if (locationIndex > -1)
+                    console.error('Could not find dragged location in array during dragend.');
+                }
+            }); // End of marker.on('dragend', ...)
 
-                marker.on('click', () => {
-                    showLocationForm('edit', loc);
-                });
-                bounds.push([loc.lat, loc.lng]);
-            }
-        });
+            marker.on('click', function(e) {
+                L.DomEvent.stopPropagation(e); // Leaflet's stop propagation
+                if (e.originalEvent) {
+                    e.originalEvent.preventDefault();
+                    e.originalEvent.stopImmediatePropagation(); // Stop other listeners on this exact element and further bubbling
+                }
+                console.log(`Marker clicked: ID ${loc.id}`, loc);
+                // In the new UX, clicking a marker *always* shows the edit form in the drawer.
+                // The isInEditMode check here is redundant if dragging is the primary way to change position in edit mode.
+                // However, to maintain consistency that click = edit form:
+                showLocationForm('edit', loc);
+            });
+            bounds.push([loc.lat, loc.lng]);
+            } // Closes if (map)
+        }); // Closes locations.forEach
 
         if (map && bounds.length > 0) {
             map.fitBounds(bounds, { padding: [50, 50] });
         }
-    }
+    } // Closes renderLocationsList
 
     // --- Form Handling ---
-    function showLocationForm(type, data = {}) {
-        // Type can be 'new' or 'edit'
-        if (type === 'edit') {
-            // Show edit form in drawer
-            bottomDrawer.classList.add('visible'); // Ensure drawer is open
-            editFormDrawerSection.classList.remove('hidden'); // Show edit form section
+function showLocationForm(type, data = {}) {
+    console.log(`showLocationForm called with type: ${type}`, data);
 
-            editFormDrawerTitle.textContent = 'Edit Location';
-            editLocationIdDrawerInput.value = data.id;
-            editLocationLabelDrawerInput.value = data.label || '';
-            editLocationLatDrawerInput.value = data.lat.toFixed(6);
-            editLocationLngDrawerInput.value = data.lng.toFixed(6);
-            // Note: Lat/Lng in drawer form are readonly, updated by map drag or new coords
+    if (type === 'edit') {
+        console.log('showLocationForm("edit") - bottomDrawer:', bottomDrawer);
+        console.log('showLocationForm("edit") - drawerContent:', drawerContent);
+        console.log('showLocationForm("edit") - editFormDrawerSection:', editFormDrawerSection);
 
-        } else { // 'new'
-            // Show new location form in modal (existing behavior)
-            locationFormTitle.textContent = 'Add New Location';
-            locationIdInput.value = ''; // Clear ID for new location
-            locationLabelInput.value = data.label || `Location ${locations.length + 1}`; // Pre-fill or suggest label
-            locationLatInput.value = data.lat ? data.lat.toFixed(6) : '';
-            locationLngInput.value = data.lng ? data.lng.toFixed(6) : '';
-            locationFormSection.classList.remove('hidden');
+        if (!bottomDrawer || !editFormDrawerSection) {
+            console.error('Essential drawer elements not found for edit form.');
+            return;
         }
-    }
 
-    function hideLocationForm() {
-        locationFormSection.classList.add('hidden');
-        locationLabelInput.value = '';
-        locationLatInput.value = '';
-        locationLngInput.value = '';
-        locationIdInput.value = '';
+        if (!bottomDrawer.classList.contains('visible')) {
+            // Drawer is being opened specifically for this edit action
+            bottomDrawer.dataset.openedForEdit = 'true';
+        } else {
+            // Drawer was already open, clear the flag just in case it was set by another path
+            delete bottomDrawer.dataset.openedForEdit;
+        }
+        bottomDrawer.classList.add('visible'); // Ensure drawer is open
+        
+        if (drawerContent) {
+            drawerContent.classList.add('hidden'); // Hide main list/buttons content
+        } else {
+            console.warn('drawerContent element not found, cannot hide it.');
+        }
+        
+        editFormDrawerSection.classList.remove('hidden'); // Show edit form section
+
+        // Populate the form
+        editFormDrawerTitle.textContent = 'Edit Location';
+        editLocationIdDrawerInput.value = data.id;
+        editLocationLabelDrawerInput.value = data.label || '';
+        // Ensure data.lat and data.lng exist and are numbers before calling toFixed
+        editLocationLatDrawerInput.value = (typeof data.lat === 'number') ? data.lat.toFixed(6) : '';
+        editLocationLngDrawerInput.value = (typeof data.lng === 'number') ? data.lng.toFixed(6) : '';
+
+    } else { // 'new' (for the modal)
+        console.log('showLocationForm("new") - locationFormSection:', locationFormSection);
+        
+        if (!locationFormSection) {
+            console.error('locationFormSection (modal) not found.');
+            return;
+        }
+        
+        locationFormSection.classList.remove('hidden');
+        
+        // Populate the modal form
+        if (locationFormTitle) locationFormTitle.textContent = 'Add New';
+        locationIdInput.value = ''; // Clear ID for new location
+        
+        const existingLabels = locations.map(l => parseInt(l.label, 10)).filter(n => !isNaN(n));
+        const maxLabel = existingLabels.length > 0 ? Math.max(...existingLabels) : 0;
+        const nextLabelNumber = maxLabel + 1;
+
+        locationLabelInput.value = data.label || nextLabelNumber.toString();
+        locationLatInput.value = data.lat ? parseFloat(data.lat).toFixed(6) : '';
+        locationLngInput.value = data.lng ? parseFloat(data.lng).toFixed(6) : '';
     }
+}
 
     // --- Geolocation ---
     function getCurrentLocation(forForm = false) {
         if (!navigator.geolocation) {
-            alert('Geolocation is not supported by your browser.');
+            showNotification('Geolocation is not supported by your browser.', 'error');
             return;
         }
 
@@ -287,369 +380,419 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 (error) => { // Ensure 'error' is defined in this scope
                     console.error('Geolocation API error callback (getCurrentLocation for form):', error);
-                    alert(`Unable to pre-fill location. Code: ${error.code}, Message: ${error.message}`);
+                    showNotification(`Unable to pre-fill location. Code: ${error.code}, Message: ${error.message}`, 'error');
                 },
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
         } catch (e) {
             console.error('Synchronous error during getCurrentLocation for form:', e);
-            alert('A critical error occurred while trying to pre-fill location: ' + e.message);
         }
     }
 
-    // --- Location Management ---
-    function addOrUpdateLocation() {
-        const label = locationLabelInput.value.trim();
-        const lat = parseFloat(locationLatInput.value);
-        const lng = parseFloat(locationLngInput.value);
-        const id = locationIdInput.value;
-
-        if (isNaN(lat) || isNaN(lng)) {
-            alert('Invalid latitude or longitude.');
-            return;
-        }
-
-        if (!label) {
-            alert('Please enter a label for the location.');
-            locationLabelInput.focus();
-            return;
-        }
-
-        if (id) { // Update existing
-            const index = locations.findIndex(loc => loc.id === id);
-            if (index > -1) {
-                locations[index] = { ...locations[index], label, lat, lng };
+function hideLocationForm(context = 'new') { // Default to 'new'
+if (context === 'edit') {
+if (editFormDrawerSection) {
+editFormDrawerSection.classList.add('hidden');
+}
+// Restore main drawer content and ensure drawer itself remains visible (or decide to close it)
+if (drawerContent) {
+drawerContent.classList.remove('hidden');
+}
+if (bottomDrawer.dataset.openedForEdit === 'true') {
+            bottomDrawer.classList.remove('visible'); // Close the whole drawer
+            delete bottomDrawer.dataset.openedForEdit; // Clean up
+        } else {
+            // Drawer was already open and should remain open showing the list.
+            // Ensure bottomDrawer remains visible if it's not being closed.
+            if (bottomDrawer) { // Check if bottomDrawer exists
+                 bottomDrawer.classList.add('visible');
             }
-        } else { // Add new
-            const newLocation = {
-                id: Date.now().toString(), // Simple unique ID
-                label,
-                lat,
-                lng,
-                timestamp: new Date().toISOString()
-            };
-            locations.push(newLocation);
         }
-        saveLocations();
-        renderLocationsList();
-        hideLocationForm();
-    }
+console.log('hideLocationForm (edit context): Hiding drawer form, showing list.');
+} else { // 'new' (modal)
+if (locationFormSection) {
+locationFormSection.classList.add('hidden');
+}
+console.log('hideLocationForm (new context): Hiding modal form.');
+}
+}
 
-    function showEditForm(id) {
-        const location = locations.find(loc => loc.id === id);
-        if (location) {
-            showLocationForm('edit', location);
+// --- Location Management ---
+function addOrUpdateLocation(context = 'new') { // Default to 'new' for safety, though explicit is better
+let label, latStr, lngStr, id_val;
+
+if (context === 'edit') {
+label = editLocationLabelDrawerInput.value.trim();
+latStr = editLocationLatDrawerInput.value;
+lngStr = editLocationLngDrawerInput.value;
+id_val = editLocationIdDrawerInput.value; // Use id_val to avoid conflict with element id 'id'
+console.log('addOrUpdateLocation (edit context):', {label, latStr, lngStr, id_val});
+} else { // 'new'
+label = locationLabelInput.value.trim();
+latStr = locationLatInput.value;
+lngStr = locationLngInput.value;
+id_val = locationIdInput.value; // This will be empty for a truly new location
+console.log('addOrUpdateLocation (new context):', {label, latStr, lngStr, id_val});
+}
+
+const lat = parseFloat(latStr);
+const lng = parseFloat(lngStr);
+
+if (isNaN(lat) || isNaN(lng)) {
+showNotification('Invalid latitude or longitude.', 'error');
+return;
+}
+
+if (!label) {
+showNotification('Please enter a label for the location.', 'warning');
+locationLabelInput.focus();
+return;
+}
+
+if (id_val && context === 'edit') { // Update existing from drawer
+const index = locations.findIndex(loc => loc.id === id_val);
+if (index > -1) {
+locations[index] = { ...locations[index], label, lat, lng };
+}
+} else if (id_val && context === 'new' && locations.some(loc => loc.id === id_val)) { // Update existing from modal (less common, but possible if ID was pre-filled)
+const index = locations.findIndex(loc => loc.id === id_val);
+if (index > -1) {
+locations[index] = { ...locations[index], label, lat, lng };
+}
+} else { // Add new (either from modal with no ID, or if ID from modal wasn't found for update)
+const newLocation = {
+id: Date.now().toString(), // Simple unique ID
+label,
+lat,
+lng,
+timestamp: new Date().toISOString()
+};
+locations.push(newLocation);
+}
+saveLocations();
+renderLocationsList();
+// Pass context to hideLocationForm so it knows which form to hide
+hideLocationForm(context);
+}
+
+function closeMainDrawer() {
+    if (bottomDrawer) {
+        bottomDrawer.classList.remove('visible');
+        
+        // Reset content visibility for next time drawer opens
+        if (editFormDrawerSection) {
+            editFormDrawerSection.classList.add('hidden');
         }
-    }
-
-    function deleteLocation(id) {
-        if (confirm('Are you sure you want to delete this location?')) {
-            locations = locations.filter(loc => loc.id !== id);
-            saveLocations();
-            renderLocationsList();
+        if (drawerContent) { // This is the container for list and edit form
+            drawerContent.classList.remove('hidden'); // Ensure it's generally visible
         }
-    }
-
-    function clearAllLocations() {
-        if (locations.length === 0) {
-            alert("There are no locations to clear.");
-            return;
+        if (locationsListContainer) { // Specifically ensure list is visible within drawerContent
+            locationsListContainer.classList.remove('hidden');
         }
-        if (confirm('Are you sure you want to delete ALL locations? This cannot be undone.')) {
-            locations = [];
-            saveLocations();
-            renderLocationsList();
-        }
-    }
-
-    // --- XML Export ---
-    function exportToXml() {
-        if (locations.length === 0) {
-            alert('No locations to export.');
-            return;
-        }
-
-        let xmlString = '<?xml version="1.0" encoding="UTF-16" standalone="no"?>\n<root>\n';
-        locations.forEach((loc, index) => {
-            xmlString += '  <plaatsen>\n';
-            xmlString += `    <id>${index}</id>\n`; // Using index as ID for export as per example
-            xmlString += `    <lat>${loc.lat}</lat>\n`;
-            xmlString += `    <lng>${loc.lng}</lng>\n`;
-            xmlString += `    <label>${loc.label ? loc.label.replace(/[<>&'"]/g, c => '&#' + c.charCodeAt(0) + ';') : ''}</label>\n`; // Basic XML escaping for label
-            xmlString += '  </plaatsen>\n';
-        });
-        xmlString += '</root>';
-
-        const blob = new Blob([xmlString], { type: 'application/xml;charset=utf-16' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'saveloc_export.xml';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-
-function toggleEditMode() {
-    isInEditMode = !isInEditMode; // Toggle the state
-
-    if (isInEditMode) {
-        // Entering Edit Mode
-        editModeBtn.innerHTML = '✓ Done';
-        editModeBtn.setAttribute('aria-label', 'Exit Edit Mode');
-        markersLayer.eachLayer(marker => {
-            if (marker.dragging) {
-                marker.dragging.enable();
-            }
-        });
-        console.log("Entered Edit Mode. Markers are now draggable.");
-    } else {
-        // Exiting Edit Mode
-        editModeBtn.innerHTML = '✎ Edit';
-        editModeBtn.setAttribute('aria-label', 'Enter Edit Mode');
-        markersLayer.eachLayer(marker => {
-            if (marker.dragging) {
-                marker.dragging.disable();
-            }
-        });
-        console.log("Exited Edit Mode. Markers are no longer draggable.");
+        
+        delete bottomDrawer.dataset.openedForEdit; // Clear the flag
     }
 }
 
-    // --- Event Listeners ---
-    editModeBtn.addEventListener('click', toggleEditMode);
+function deleteLocation(id) {
+    if (confirm('Are you sure you want to delete this location?')) {
+        locations = locations.filter(loc => loc.id !== id);
+        saveLocations();
+        renderLocationsList();
+    }
+}
 
-    addLocationBtn.addEventListener('click', () => {
-        console.log('Add Current Location button clicked.');
-        // Get current location, then show form with pre-filled coords
-        if (!navigator.geolocation) {
-            alert('Geolocation is not supported by your browser.');
-            return;
-        }
+function clearAllLocations() {
+    if (locations.length === 0) {
+        showNotification("There are no locations to clear.", 'info');
+        return;
+    }
+    if (confirm('Are you sure you want to delete ALL locations? This cannot be undone.')) {
+        locations = [];
+        saveLocations();
+        renderLocationsList();
+    }
+}
+
+function exportToXml() {
+    if (locations.length === 0) {
+        showNotification('No locations to export.', 'info');
+        return;
+    }
+
+    let xmlString = '<?xml version="1.0" encoding="UTF-16" standalone="no"?>\n<root>\n';
+    locations.forEach((loc, index) => {
+        xmlString += '  <plaatsen>\n';
+        xmlString += `    <id>${loc.id || index}</id>\n`;
+        xmlString += `    <lat>${loc.lat}</lat>\n`;
+        xmlString += `    <lng>${loc.lng}</lng>\n`;
+        const escapedLabel = loc.label ? loc.label.replace(/[<>&'"]/g, c => '&#' + c.charCodeAt(0) + ';') : '';
+        xmlString += `    <label>${escapedLabel}</label>\n`;
+        xmlString += '  </plaatsen>\n';
+    });
+    xmlString += '</root>';
+
+    const blob = new Blob([xmlString], { type: 'application/xml;charset=utf-16' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'saveloc_export.xml';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function handleFileImport(event) {
+    const file = event.target.files[0];
+    if (!file) {
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
         try {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    console.log('Position retrieved:', position);
-                    showLocationForm('add'); // Show form
-                    locationLatInput.value = position.coords.latitude; // Pre-fill
-                    locationLngInput.value = position.coords.longitude; // Pre-fill
-                    const nextLabelNumberSuccess = locations.length + 1;
-                    locationLabelInput.value = nextLabelNumberSuccess.toString(); // Pre-fill numeric label
-                    locationLabelInput.focus(); // Focus on label input
-                },
-                (error) => { // Ensure 'error' is defined in this scope
-                    console.error('Geolocation API error callback:', error);
-                    alert(`Unable to retrieve location. Code: ${error.code}, Message: ${error.message}`);
-                    // Still show the form but without coordinates
-                    showLocationForm('add'); 
-                    locationLatInput.value = '';
-                    locationLngInput.value = '';
-                    const nextLabelNumberError = locations.length + 1;
-                    locationLabelInput.value = nextLabelNumberError.toString(); // Pre-fill numeric label
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-        } catch (e) {
-            console.error('Synchronous error during geolocation call:', e);
-            alert('A critical error occurred while trying to get location: ' + e.message);
+            const xmlString = e.target.result;
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlString, "application/xml");
+
+            const errorNode = xmlDoc.querySelector('parsererror');
+            if (errorNode) {
+                console.error('Error parsing XML:', errorNode.textContent);
+                showNotification('Error parsing XML file. Please check the file format.', 'error');
+                return;
+            }
+
+            const plaatsElements = xmlDoc.getElementsByTagName('plaatsen');
+            if (plaatsElements.length === 0) {
+                showNotification('No locations found in the XML file.', 'info');
+                return;
+            }
+
+            let importedCount = 0;
+            for (let i = 0; i < plaatsElements.length; i++) {
+                const plaats = plaatsElements[i];
+                const idNode = plaats.getElementsByTagName('id')[0];
+                const latNode = plaats.getElementsByTagName('lat')[0];
+                const lngNode = plaats.getElementsByTagName('lng')[0];
+                const labelNode = plaats.getElementsByTagName('label')[0];
+
+                if (idNode && latNode && lngNode) {
+                    const id = idNode.textContent;
+                    const lat = parseFloat(latNode.textContent);
+                    const lng = parseFloat(lngNode.textContent);
+                    let label = labelNode ? labelNode.textContent : '';
+
+                    if (isNaN(lat) || isNaN(lng)) {
+                        console.warn(`Skipping location with invalid coordinates: id ${id}`);
+                        continue;
+                    }
+
+                    if (!label && id) {
+                        label = id; // Use ID as label if label is empty
+                    }
+                    
+                    // Check if location with this ID already exists to avoid duplicates, or decide on update strategy
+                    // For now, we'll add as new, potentially creating duplicates if IDs match.
+                    // A more robust solution might involve checking existing locations.
+                    const newLocation = {
+                        id: Date.now().toString() + "_" + i, // Ensure unique ID for imported items for now
+                        originalId: id, // Keep original ID for reference if needed
+                        label,
+                        lat,
+                        lng,
+                        timestamp: new Date().toISOString()
+                    };
+                    locations.push(newLocation);
+                    importedCount++;
+                }
+            }
+
+            if (importedCount > 0) {
+                saveLocations();
+                renderLocationsList();
+                showNotification(`${importedCount} location(s) imported successfully.`, 'success');
+            } else {
+                showNotification('No valid locations found to import.', 'info');
+            }
+
+        } catch (error) {
+            console.error('Error processing XML file:', error);
+            showNotification('An error occurred while processing the XML file.', 'error');
         }
+        // Reset file input to allow importing the same file again if needed
+        event.target.value = null;
+    };
+    reader.onerror = function() {
+        showNotification('Error reading file.', 'error');
+        event.target.value = null;
+    };
+    reader.readAsText(file);
+}
+
+function showEditForm(id) {
+const location = locations.find(loc => loc.id === id);
+if (location) {
+showLocationForm('edit', location);
+    }
+}
+function toggleEditMode() {
+    isInEditMode = !isInEditMode;
+    editModeBtn.textContent = isInEditMode ? 'Exit Edit Mode' : 'Enter Edit Mode';
+    editModeBtn.classList.toggle('edit-mode-active', isInEditMode);
+    renderLocationsList(); 
+    if (map) {
+        locations.forEach(loc => {
+            if (markers[loc.id]) {
+                if (isInEditMode) {
+                    // Long-press drag is handled by marker setup
+                } else {
+                    if (markers[loc.id].dragging && markers[loc.id].dragging.enabled()) {
+                        markers[loc.id].dragging.disable();
+                    }
+                }
+            }
+        });
+    }
+    showNotification(isInEditMode ? 'Edit Mode Activated: Long-press markers to drag. Tap markers to edit details.' : 'Edit Mode Deactivated.', 'info');
+}
+
+
+    console.log('typeof loadLocations before call:', typeof loadLocations);
+    loadLocations();
+    console.log('typeof loadMap before call:', typeof loadMap);
+    loadMap().then(() => {
+        renderLocationsList();
+    }).catch(error => {
+        console.error("Error loading map on DOMContentLoaded:", error);
+        showNotification("Failed to initialize the map. Please refresh the page.", 'error');
     });
 
-    clearListBtn.addEventListener('click', clearAllLocations);
-    exportXmlBtn.addEventListener('click', exportToXml);
-    saveLocationBtn.addEventListener('click', addOrUpdateLocation);
-    cancelFormBtn.addEventListener('click', hideLocationForm);
-
-    // --- XML Import ---
-    if (importXmlBtnTrigger && importXmlInput) {
-        importXmlBtnTrigger.addEventListener('click', () => {
-            importXmlInput.click(); // Trigger hidden file input
-        });
-
-        importXmlInput.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (file) {
-                console.log('File selected for import:', file.name);
-                const reader = new FileReader();
-
-                reader.onload = (e) => {
-                    try {
-                        const xmlString = e.target.result;
-                        const parser = new DOMParser();
-                        const xmlDoc = parser.parseFromString(xmlString, "application/xml");
-
-                        const parserErrors = xmlDoc.getElementsByTagName("parsererror");
-                        if (parserErrors.length > 0) {
-                            console.error('XML Parsing Error:', parserErrors[0].textContent);
-                            alert('Error parsing XML file. Please ensure it is a valid XML.');
-                            event.target.value = null; // Reset file input
-                            return;
-                        }
-
-                        const xmlPlaatsen = xmlDoc.getElementsByTagName("plaatsen");
-                        let importedCount = 0;
-                        const newLocations = [];
-
-                        for (let i = 0; i < xmlPlaatsen.length; i++) {
-                            const plaats = xmlPlaatsen[i];
-                            const xmlIdNode = plaats.getElementsByTagName("id")[0];
-                            const latNode = plaats.getElementsByTagName("lat")[0];
-                            const lngNode = plaats.getElementsByTagName("lng")[0];
-                            const labelNode = plaats.getElementsByTagName("label")[0];
-
-                            const xmlId = xmlIdNode ? xmlIdNode.textContent.trim() : '';
-                            const lat = latNode ? parseFloat(latNode.textContent) : null;
-                            const lng = lngNode ? parseFloat(lngNode.textContent) : null;
-                            let label = labelNode ? labelNode.textContent.trim() : '';
-
-                            if (lat === null || isNaN(lat) || lng === null || isNaN(lng)) {
-                                console.warn('Skipping invalid location entry from XML (missing/invalid lat/lng):', plaats.innerHTML);
-                                continue;
-                            }
-
-                            if (label === '') {
-                                label = xmlId || `Imported ${Date.now().toString().slice(-4)}`; // Use XML ID or a generic fallback
-                            }
-
-                            const newAppId = Date.now().toString() + '-' + Math.random().toString(36).substr(2, 9);
-
-                            newLocations.push({
-                                id: newAppId,
-                                lat: lat,
-                                lng: lng,
-                                label: label
-                            });
-                            importedCount++;
-                        }
-
-                        if (newLocations.length > 0) {
-                            locations.push(...newLocations);
-                            saveLocations();
-                            renderLocationsList();
-                            alert(`${importedCount} location(s) imported successfully!`);
-                        } else {
-                            alert('No valid locations found in the XML file to import.');
-                        }
-
-                    } catch (error) {
-                        console.error('Error processing XML file:', error);
-                        alert('An error occurred while importing the file.');
-                    }
-                    // Reset file input to allow importing the same file again if needed
-                    event.target.value = null; 
-                };
-
-                reader.onerror = () => {
-                    console.error('Error reading file:', reader.error);
-                    alert('Error reading the selected file.');
-                    event.target.value = null; // Reset file input
-                };
-
-                reader.readAsText(file);
-            }
-        });
-    } else {
-        console.error('Import XML buttons not found.');
-    }
-
-    // Hamburger menu and drawer functionality
-    if (hamburgerBtn && bottomDrawer && closeDrawerBtn) {
-        hamburgerBtn.addEventListener('click', () => {
-            console.log('Hamburger button clicked');
-            console.log('Drawer classList BEFORE toggle:', bottomDrawer.classList);
-            bottomDrawer.classList.toggle('visible');
-            console.log('Drawer classList AFTER toggle:', bottomDrawer.classList);
-            // Invalidate map size after drawer animation
-            setTimeout(() => {
-                if (map) map.invalidateSize();
-            }, 300); // Corresponds to CSS transition time
-        });
-
-        closeDrawerBtn.addEventListener('click', () => {
-            console.log('Close drawer button clicked');
-            console.log('Drawer classList BEFORE remove (close):', bottomDrawer.classList);
-            bottomDrawer.classList.remove('visible');
-            console.log('Drawer classList AFTER remove (close):', bottomDrawer.classList);
-            // Invalidate map size after drawer animation
-            setTimeout(() => {
-                if (map) map.invalidateSize();
-            }, 300); // Corresponds to CSS transition time
-        });
-    } else {
-        console.error('Hamburger menu buttons or drawer not found. UI may not function as expected.');
-    }
-
-    // --- Initial Load ---
-    initMap();
-    renderLocationsList();
-
-    // --- PWA Basic Manifest and Service Worker Placeholder ---
-    // Create manifest.json
-    const manifest = {
-        "name": "MarketLocations - Location Saver",
-        "short_name": "MarketLocations",
-        "description": "A simple app to save and manage GPS locations.",
-        "start_url": "/index.html",
-        "display": "standalone",
-        "background_color": "#ffffff",
-        "theme_color": "#007bff",
-        "icons": [
-            {
-                "src": "icons/icon-192x192.png",
-                "sizes": "192x192",
-                "type": "image/png"
-            },
-            {
-                "src": "icons/icon-512x512.png",
-                "sizes": "512x512",
-                "type": "image/png"
-            }
-        ]
-    };
-    // Note: manifest.json should be a separate file. This is just for reference.
-    // The HTML already links to manifest.json
-
-    // Placeholder for service worker registration (optional, for PWA features like offline)
-    /*
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js')
-        .then(registration => {
-            console.log('Service Worker registered with scope:', registration.scope);
-        }).catch(error => {
-            console.error('Service Worker registration failed:', error);
-        });
-    }
-    */
-
-    // Close drawer on Escape key
-    document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && bottomDrawer.classList.contains('visible')) {
+    document.addEventListener('click', (event) => {
+        if (bottomDrawer && bottomDrawer.classList.contains('visible') &&
+            !bottomDrawer.contains(event.target) &&
+            (hamburgerBtn && !hamburgerBtn.contains(event.target)) &&
+            (!addLocationBtn || (addLocationBtn && !addLocationBtn.contains(event.target))) &&
+            (!editModeBtn || (editModeBtn && !editModeBtn.contains(event.target)))) {
             if (editFormDrawerSection && !editFormDrawerSection.classList.contains('hidden')) {
                 editFormDrawerSection.classList.add('hidden');
                 if (drawerContent) drawerContent.classList.remove('hidden');
-                // First escape closes edit form, keeps drawer open.
             } else {
                 bottomDrawer.classList.remove('visible');
-                if (map) setTimeout(() => map.invalidateSize(), 300);
             }
-        }
-    });
-
-    // Close drawer on click outside
-    document.addEventListener('click', (event) => {
-        if (bottomDrawer.classList.contains('visible') && 
-            !bottomDrawer.contains(event.target) && 
-            (hamburgerBtn && !hamburgerBtn.contains(event.target)) &&
-            (addLocationBtn && !addLocationBtn.contains(event.target)) ) {
-            
-            if (editFormDrawerSection && !editFormDrawerSection.classList.contains('hidden')) {
-                editFormDrawerSection.classList.add('hidden');
-                if (drawerContent) drawerContent.classList.remove('hidden');
-            }
-            bottomDrawer.classList.remove('visible');
             if (map) setTimeout(() => map.invalidateSize(), 300);
         }
     });
 
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            if (editFormDrawerSection && !editFormDrawerSection.classList.contains('hidden')) {
+                hideLocationForm('edit');
+            } else if (bottomDrawer && bottomDrawer.classList.contains('visible')) {
+                bottomDrawer.classList.remove('visible');
+                if (map) setTimeout(() => map.invalidateSize(), 300);
+            } else if (locationFormSection && !locationFormSection.classList.contains('hidden')) {
+                 hideLocationForm('new');
+            }
+        }
+    });
+
+    if (editModeBtn) editModeBtn.addEventListener('click', toggleEditMode);
+
+    if (closeDrawerBtn) {
+        closeDrawerBtn.addEventListener('click', closeMainDrawer);
+    }
+    
+        if (addLocationBtn) {
+        addLocationBtn.addEventListener('click', () => {
+            if (!navigator.geolocation) {
+                showNotification('Geolocation is not supported by your browser', 'error');
+                const nextLabel = (locations.length + 1).toString();
+                showLocationForm('new', { lat: '', lng: '', label: nextLabel });
+                return;
+            }
+            
+            addLocationBtn.disabled = true;
+            addLocationBtn.textContent = 'Fetching...';
+
+            try {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const nextLabel = (locations.length + 1).toString();
+                        showLocationForm('new', {
+                            lat: position.coords.latitude.toFixed(6),
+                            lng: position.coords.longitude.toFixed(6),
+                            label: nextLabel
+                        });
+                        addLocationBtn.disabled = false;
+                        addLocationBtn.textContent = 'Add New Location';
+                    },
+                    (error) => {
+                        console.error('Error getting location:', error.message, 'Code:', error.code);
+                        showNotification(`Error getting current location: ${error.message}. Please add manually.`, 'error');
+                        const nextLabelError = (locations.length + 1).toString();
+                        showLocationForm('new', { lat: '', lng: '', label: nextLabelError });
+                        addLocationBtn.disabled = false;
+                        addLocationBtn.textContent = 'Add New Location';
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            } catch (e) {
+                console.error('Synchronous error during geolocation call:', e);
+                showNotification('A critical error occurred while trying to get location: ' + e.message, 'error');
+                const nextLabelCatch = (locations.length + 1).toString();
+                showLocationForm('new', { lat: '', lng: '', label: nextLabelCatch });
+            }
+        });
+    }
+
+    if (saveLocationBtn) saveLocationBtn.addEventListener('click', () => addOrUpdateLocation('new'));
+    if (cancelFormBtn) cancelFormBtn.addEventListener('click', () => hideLocationForm('new'));
+    if (clearListBtn) clearListBtn.addEventListener('click', clearAllLocations);
+    if (exportXmlBtn) exportXmlBtn.addEventListener('click', exportToXml);
+    if (saveLocationDrawerBtn) saveLocationDrawerBtn.addEventListener('click', () => addOrUpdateLocation('edit'));
+    if (cancelEditDrawerBtn) cancelEditDrawerBtn.addEventListener('click', () => hideLocationForm('edit'));
+    
+    if (updateLocationToCurrentBtn) {
+        updateLocationToCurrentBtn.addEventListener('click', () => {
+            const locationId = editLocationIdDrawerInput.value;
+            if (!locationId) {
+                showNotification('No location selected for update.', 'warning');
+                return;
+            }
+            if (!navigator.geolocation) {
+                showNotification('Geolocation is not supported by your browser.', 'error');
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    if(editLocationLatDrawerInput) editLocationLatDrawerInput.value = position.coords.latitude.toFixed(6);
+                    if(editLocationLngDrawerInput) editLocationLngDrawerInput.value = position.coords.longitude.toFixed(6);
+                    showNotification('Location coordinates updated to current. Press Save to confirm.', 'info');
+                },
+                (error) => {
+                    showNotification(`Error getting current location: ${error.message}`, 'error');
+                },
+                { enableHighAccuracy: true }
+            );
+        });
+    }
+
+    if (importXmlBtnTrigger && importXmlInput) {
+        importXmlBtnTrigger.addEventListener('click', () => importXmlInput.click());
+        importXmlInput.addEventListener('change', handleFileImport);
+    }
+    
+    if (hamburgerBtn) {
+        hamburgerBtn.addEventListener('click', () => {
+            if (bottomDrawer) {
+                bottomDrawer.classList.toggle('visible');
+                if (bottomDrawer.classList.contains('visible') && editFormDrawerSection && !editFormDrawerSection.classList.contains('hidden')) {
+                    editFormDrawerSection.classList.add('hidden');
+                    if (drawerContent) drawerContent.classList.remove('hidden');
+                }
+                 if (map) setTimeout(() => map.invalidateSize(), 300);
+            }
+        });
+    }
 });

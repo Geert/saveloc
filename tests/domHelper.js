@@ -30,6 +30,8 @@ module.exports = async function loadDom() {
 
   dom.window.setTimeout = fn => { fn(); return 0; };
   dom.window.setInterval = () => 0;
+  // jsdom does not provide setImmediate by default
+  dom.window.setImmediate = fn => setImmediate(fn);
 
   // Minimal Leaflet stub so script.js can run
   dom.window.L = {

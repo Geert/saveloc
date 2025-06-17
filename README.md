@@ -14,6 +14,12 @@ python3 -m http.server
 
 Then browse to <http://localhost:8000>.
 
+## Location Permission
+
+SaveLoc needs access to your browser's Geolocation API when adding a location.
+On first use you will be asked to grant permission. If you accidentally deny the
+request, enable location access for the page in your browser settings.
+
 ## Import/export
 
 Use the menu to export all locations to an XML file or import from an existing file. Saved locations are stored in your browser's `localStorage` so they remain available on your device.

@@ -389,6 +389,34 @@ function showLocationForm(type, data = {}) {
         }
     }
 
+    async function requestLocationPermission() {
+        if (!navigator.permissions || !navigator.permissions.query) {
+            return true; // Permissions API not supported
+        }
+        try {
+            const status = await navigator.permissions.query({ name: 'geolocation' });
+            if (status.state === 'granted') {
+                return true;
+            } else if (status.state === 'prompt') {
+                return new Promise(resolve => {
+                    navigator.geolocation.getCurrentPosition(
+                        () => resolve(true),
+                        () => {
+                            showNotification('Location permission denied.', 'error');
+                            resolve(false);
+                        }
+                    );
+                });
+            } else {
+                showNotification('Location permission denied. Enable it in your browser settings.', 'error');
+                return false;
+            }
+        } catch (e) {
+            console.error('Permission check failed', e);
+            return true; // Fail open
+        }
+    }
+
 function hideLocationForm(context = 'new') { // Default to 'new'
 if (context === 'edit') {
 if (editFormDrawerSection) {
@@ -663,6 +691,7 @@ function toggleEditMode() {
     console.log('typeof loadMap before call:', typeof loadMap);
     loadMap().then(() => {
         renderLocationsList();
+        requestLocationPermission();
     }).catch(error => {
         console.error("Error loading map on DOMContentLoaded:", error);
         showNotification("Failed to initialize the map. Please refresh the page.", 'error');
@@ -804,7 +833,8 @@ function toggleEditMode() {
             loadLocations,
             saveLocations,
             showNotification,
-            exportToXml
+            exportToXml,
+            requestLocationPermission
         };
     }
 });

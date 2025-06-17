@@ -834,7 +834,13 @@ function toggleEditMode() {
             saveLocations,
             showNotification,
             exportToXml,
-            requestLocationPermission
+            requestLocationPermission,
+            createLabelIcon,
+            showLocationForm,
+            hideLocationForm,
+            addOrUpdateLocation,
+            clearAllLocations,
+            renderLocationsList
         };
     }
 });

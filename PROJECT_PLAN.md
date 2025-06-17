@@ -35,8 +35,10 @@ For end-to-end testing in a browser, introduce **Cypress** or **Playwright**:
 ## 4. Refactoring Steps (after tests pass)
 1. **Modularize code** – Split the large `script.js` into smaller modules (e.g., `storage.js`, `map.js`, `ui.js`) that export explicit functions. This makes unit testing easier.
 2. **Improve state management** – Introduce a central state object or use a small framework if needed. Ensure functions are pure where possible to simplify tests.
-3. **Accessibility & performance tweaks** – Clean up DOM manipulation, remove console logs, and adopt a consistent coding style.
-4. **Documentation** – Update README with setup instructions (`npm install`, running tests, start server). Document any API changes from the refactor.
-5. **Ongoing CI** – Keep tests green during refactoring. Expand tests as new modules are introduced.
+3. **Remove unused code** – Identify functions, variables and markup that are no longer called and delete them to keep the codebase lean.
+4. **Eliminate duplicate logic** – Look for repeated patterns and refactor them into shared helpers to make the code DRY.
+5. **Accessibility & performance tweaks** – Clean up DOM manipulation, remove console logs, and adopt a consistent coding style.
+6. **Documentation** – Update README with setup instructions (`npm install`, running tests, start server). Document any API changes from the refactor.
+7. **Ongoing CI** – Keep tests green during refactoring. Expand tests as new modules are introduced.
 
 Following this plan ensures the current functionality is locked down by tests, enabling a safe refactor while maintaining confidence through automated CI runs.

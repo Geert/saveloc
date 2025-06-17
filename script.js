@@ -795,4 +795,16 @@ function toggleEditMode() {
             }
         });
     }
+
+    // Expose selected functions for testing
+    if (typeof window !== 'undefined') {
+        window.saveLocTest = {
+            setLocations: arr => { locations = arr; },
+            getLocations: () => locations,
+            loadLocations,
+            saveLocations,
+            showNotification,
+            exportToXml
+        };
+    }
 });

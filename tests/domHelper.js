@@ -7,7 +7,8 @@ module.exports = async function loadDom() {
   html = html
     .replace(/<link[^>]*unpkg[^>]*>/g, '')
     .replace(/<script[^>]*unpkg[^>]*><\/script>/g, '')
-    .replace(/<script[^>]*src="script.js"[^>]*><\/script>/, '')
+    .replace(/<script[^>]*src="main.js"[^>]*><\/script>/, '')
+    .replace(/<script[^>]*src="src\/[^"]*"[^>]*><\/script>/g, '')
     .replace(/<link[^>]*href="style.css"[^>]*>/, '');
   const dom = new JSDOM(html, { runScripts: 'dangerously', resources: 'usable', url: 'http://localhost' });
 
@@ -33,7 +34,7 @@ module.exports = async function loadDom() {
   // jsdom does not provide setImmediate by default
   dom.window.setImmediate = fn => setImmediate(fn);
 
-  // Minimal Leaflet stub so script.js can run
+  // Minimal Leaflet stub so main.js can run
   dom.window.L = {
     map: () => ({ setView: () => {}, on: () => {}, addLayer: () => {},
       remove: () => {}, fitBounds: () => {} }),
@@ -52,8 +53,11 @@ module.exports = async function loadDom() {
     })
   };
 
-  const scriptContent = fs.readFileSync(path.join(__dirname, '..', 'script.js'), 'utf8');
-  dom.window.eval(scriptContent);
+  const modules = ['src/state.js', 'src/ui.js', 'src/storage.js', 'src/permission.js', 'src/map.js', 'main.js'];
+  modules.forEach(file => {
+    const content = fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
+    dom.window.eval(content);
+  });
   dom.window.document.dispatchEvent(new dom.window.Event('DOMContentLoaded'));
   await Promise.resolve();
   return dom;

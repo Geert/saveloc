@@ -25,7 +25,7 @@ describe('UI elements', () => {
   test('links to manifest and script', () => {
     const manifest = document.querySelector('link[rel="manifest"]');
     expect(manifest).not.toBeNull();
-    const script = document.querySelector('script[src="script.js"]');
+    const script = document.querySelector('script[src="main.js"]');
     expect(script).not.toBeNull();
   });
 });

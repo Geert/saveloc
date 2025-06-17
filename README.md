@@ -23,3 +23,16 @@ request, enable location access for the page in your browser settings.
 ## Import/export
 
 Use the menu to export all locations to an XML file or import from an existing file. Saved locations are stored in your browser's `localStorage` so they remain available on your device.
+
+## Running tests
+
+To run the automated Jest test suite make sure you have Node.js installed. Then
+install the dependencies and execute the tests with:
+
+```bash
+npm install
+npm test
+```
+
+The tests are located in the `tests` directory and cover key functionality of
+the application.

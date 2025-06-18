@@ -51,12 +51,12 @@
                     <input type="text" id="editLocationLabelDrawer" placeholder="E.g., Home, Work">
                 </div>
                 <div>
-                    <label for="editLocationLatDrawer">Latitude:</label>
-                    <input type="text" id="editLocationLatDrawer" readonly>
+                <label for="editLocationLatDrawer">Latitude:</label>
+                <input type="number" id="editLocationLatDrawer" step="0.000001">
                 </div>
                 <div>
-                    <label for="editLocationLngDrawer">Longitude:</label>
-                    <input type="text" id="editLocationLngDrawer" readonly>
+                <label for="editLocationLngDrawer">Longitude:</label>
+                <input type="number" id="editLocationLngDrawer" step="0.000001">
                 </div>
                 <div class="form-buttons-container">
                     <button type="button" id="updateLocationToCurrentBtn" class="btn btn-update">🎯 Update to Current</button>
@@ -78,11 +78,11 @@
             </div>
             <div>
                 <label for="locationLat">Latitude:</label>
-                <input type="text" id="locationLat" readonly>
+                <input type="number" id="locationLat" step="0.000001">
             </div>
             <div>
                 <label for="locationLng">Longitude:</label>
-                <input type="text" id="locationLng" readonly>
+                <input type="number" id="locationLng" step="0.000001">
             </div>
             <div class="form-buttons-container">
                 <button type="button" id="saveLocationBtn" class="btn btn-primary">Save Location</button>

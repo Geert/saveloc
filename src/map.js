@@ -85,6 +85,13 @@
     markerClickHandler = fn;
   }
 
-  return { loadMap, initMap, createLabelIcon, renderLocationsList, setMarkerClickHandler };
+  function updateMarkerPosition(id, lat, lng) {
+    const marker = state.markers[id];
+    if (marker) {
+      marker.setLatLng({ lat, lng });
+    }
+  }
+
+  return { loadMap, initMap, createLabelIcon, renderLocationsList, setMarkerClickHandler, updateMarkerPosition };
 }));
 

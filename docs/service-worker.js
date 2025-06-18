@@ -1,5 +1,18 @@
-const CACHE_NAME = 'saveloc-static-v1';
+const CACHE_PREFIX = 'saveloc-static-';
 const TILE_CACHE = 'saveloc-tiles-v1';
+
+async function getVersion() {
+  try {
+    const resp = await fetch('./manifest.json', { cache: 'no-store' });
+    const data = await resp.json();
+    if (data && data.version) {
+      return `v${data.version}`;
+    }
+  } catch (e) {
+    console.error('Unable to read manifest version', e);
+  }
+  return 'v1';
+}
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -20,20 +33,23 @@ const STATIC_ASSETS = [
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS))
-  );
+  event.waitUntil((async () => {
+    const version = await getVersion();
+    const cache = await caches.open(CACHE_PREFIX + version);
+    await cache.addAll(STATIC_ASSETS);
+  })());
   self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys => {
-      return Promise.all(
-        keys.filter(k => k !== CACHE_NAME && k !== TILE_CACHE).map(k => caches.delete(k))
-      );
-    })
-  );
+  event.waitUntil((async () => {
+    const version = await getVersion();
+    const currentCache = CACHE_PREFIX + version;
+    const keys = await caches.keys();
+    await Promise.all(
+      keys.filter(k => k !== currentCache && k !== TILE_CACHE).map(k => caches.delete(k))
+    );
+  })());
   self.clients.claim();
 });
 

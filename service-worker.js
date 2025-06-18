@@ -13,8 +13,7 @@ const STATIC_ASSETS = [
   './src/storage.js',
   './src/permission.js',
   './src/map.js',
-  './src/data-layer.js',
-  './src/ui-controller.js'
+  './src/app-controller.js'
 ];
 
 self.addEventListener('install', event => {

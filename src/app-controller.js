@@ -1,7 +1,6 @@
 (function(root, factory) {
   if (typeof module === 'object' && module.exports) {
     module.exports = factory(
-      require('./data-layer'),
       require('./state'),
       require('./storage'),
       require('./ui'),
@@ -9,16 +8,15 @@
       require('./permission')
     );
   } else {
-    root.uiController = factory(
-      root.dataLayer,
+    root.appController = factory(
       root.appState,
       root.storage,
       root.ui,
-      root.mapModule,
+      root.mapManager,
       root.permission
     );
   }
-}(typeof self !== 'undefined' ? self : this, function(dataLayer, state, storage, ui, mapModule, permission) {
+}(typeof self !== 'undefined' ? self : this, function(state, storage, ui, mapManager, permission) {
   function showAddForm(data = {}) {
     const section = document.getElementById('location-form-section');
     const idInput = document.getElementById('locationId');
@@ -105,7 +103,7 @@
     if (editModeBtn) {
       editModeBtn.textContent = state.isInEditMode ? 'Exit Edit Mode' : 'Enter Edit Mode';
     }
-    mapModule.renderLocationsList();
+    mapManager.renderLocationsList();
   }
 
   function handleAddLocationClick() {
@@ -155,7 +153,7 @@
         lng: parseFloat(lngField.value)
       };
       storage.saveLocations();
-      mapModule.renderLocationsList();
+      mapManager.renderLocationsList();
     }
     hideEditForm();
   }
@@ -176,7 +174,7 @@
     const lat = parseFloat(document.getElementById('editLocationLatDrawer').value);
     const lng = parseFloat(document.getElementById('editLocationLngDrawer').value);
     if (!isNaN(lat) && !isNaN(lng)) {
-      mapModule.updateMarkerPosition(showEditForm.currentId, lat, lng);
+      mapManager.updateMarkerPosition(showEditForm.currentId, lat, lng);
     }
   }
 
@@ -200,7 +198,7 @@
     };
     state.locations.push(newLocation);
     storage.saveLocations();
-    mapModule.renderLocationsList();
+    mapManager.renderLocationsList();
     hideAddForm();
   }
 
@@ -212,7 +210,7 @@
     if (confirm('Are you sure you want to delete ALL locations? This cannot be undone.')) {
       state.locations = [];
       storage.saveLocations();
-      mapModule.renderLocationsList();
+      mapManager.renderLocationsList();
     }
   }
 
@@ -291,7 +289,7 @@
         }
         if (importedCount > 0) {
           storage.saveLocations();
-          mapModule.renderLocationsList();
+          mapManager.renderLocationsList();
           ui.showNotification(`${importedCount} location(s) imported successfully.`, 'success');
         }
       } catch (error) {
@@ -357,34 +355,34 @@
   }
 
   function init() {
-    dataLayer.loadLocations();
+    storage.loadLocations();
     attachEventListeners();
-    mapModule.setMarkerClickHandler(showEditForm);
-    mapModule.loadMap().then(() => {
-      mapModule.renderLocationsList();
+    mapManager.setMarkerClickHandler(showEditForm);
+    mapManager.loadMap().then(() => {
+      mapManager.renderLocationsList();
       permission.requestLocationPermission();
     });
   }
 
   const testApi = {
-    setLocations: dataLayer.setLocations,
-    getLocations: dataLayer.getLocations,
-    loadLocations: dataLayer.loadLocations,
-    saveLocations: dataLayer.saveLocations,
+    setLocations: state.setLocations,
+    getLocations: state.getLocations,
+    loadLocations: storage.loadLocations,
+    saveLocations: storage.saveLocations,
     showNotification: ui.showNotification,
     exportToXml,
     requestLocationPermission: permission.requestLocationPermission,
-    createLabelIcon: mapModule.createLabelIcon,
+    createLabelIcon: mapManager.createLabelIcon,
     addOrUpdateLocation,
     clearAllLocations,
-    renderLocationsList: mapModule.renderLocationsList,
+    renderLocationsList: mapManager.renderLocationsList,
     showAddForm,
     hideAddForm,
     showEditForm,
     hideEditForm,
     toggleDrawer,
     closeDrawer,
-    updateMarkerPosition: mapModule.updateMarkerPosition
+    updateMarkerPosition: mapManager.updateMarkerPosition
   };
 
   return { init, testApi };

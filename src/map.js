@@ -5,7 +5,7 @@ const PREFERRED_MAP_LAYER_KEY = 'preferredMapLayerName';
   if (typeof module === 'object' && module.exports) {
     module.exports = factory(require('./state'), require('./ui'), require('./storage'));
   } else {
-    root.mapModule = factory(root.appState, root.ui, root.storage);
+    root.mapManager = factory(root.appState, root.ui, root.storage);
   }
 }(typeof self !== 'undefined' ? self : this, function (state, ui, storage) {
   let markerClickHandler = null;

@@ -5,11 +5,16 @@
     root.appState = factory();
   }
 }(typeof self !== 'undefined' ? self : this, function () {
-  return {
+  const state = {
     locations: [],
     map: null,
     markersLayer: null,
     markers: {},
     isInEditMode: false
   };
+
+  state.setLocations = arr => { state.locations = arr; };
+  state.getLocations = () => state.locations;
+
+  return state;
 }));

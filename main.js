@@ -1,9 +1,9 @@
 // Main entry point
 (function() {
   document.addEventListener('DOMContentLoaded', () => {
-    if (window.uiController && window.uiController.init) {
-      window.uiController.init();
-      window.saveLocTest = window.uiController.testApi;
+    if (window.appController && window.appController.init) {
+      window.appController.init();
+      window.saveLocTest = window.appController.testApi;
     }
   });
 })();

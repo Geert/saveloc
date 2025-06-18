@@ -411,6 +411,14 @@ import { t } from "../i18n.mjs";
       if (e.key === 'Escape') closeDrawer();
     });
 
+    document.addEventListener('click', e => {
+      const drawer = document.getElementById('bottom-drawer');
+      if (!drawer || !drawer.classList.contains('visible')) return;
+      if (!drawer.contains(e.target) && e.target !== hamburgerBtn) {
+        closeDrawer();
+      }
+    });
+
     if (locationsListUL) {
       locationsListUL.addEventListener('click', e => {
         const li = e.target.closest('li[data-id]');

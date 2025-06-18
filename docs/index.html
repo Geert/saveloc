@@ -23,17 +23,16 @@
     <div id="bottom-drawer">
         <div class="drawer-header">
             <h3 data-i18n="menu">Menu</h3>
+            <button id="forceRefreshBtn" aria-label="Force Refresh" data-i18n-aria-label="force_refresh">⟳</button>
             <button id="closeDrawerBtn" aria-label="Close menu" data-i18n-aria-label="close_menu">×</button>
         </div>
         <div class="drawer-content" id="drawer-main-content">
+            <select id="mapLayerSelect" class="inline-select" aria-label="Map Layer" data-i18n-aria-label="map_layer"></select>
             <button id="clearListBtn" data-i18n="clear_all">Clear All Locations</button>
             <button id="exportXmlBtn" data-i18n="export_xml">Export as XML</button>
             <button id="importXmlBtnTrigger" data-i18n="import_xml">Import XML</button>
             <input type="file" id="importXmlInput" accept=".xml" style="display: none;">
             <button id="viewSavedLocationsBtn" data-i18n="saved_locations">Saved Locations</button>
-            <button id="forceRefreshBtn" data-i18n="force_refresh">Force Refresh</button>
-            <label for="mapLayerSelect" class="inline-select-label" data-i18n="map_layer">Map Layer</label>
-            <select id="mapLayerSelect" class="inline-select"></select>
         </div>
 
         <!-- Edit Form Section within Drawer (hidden by default) -->

@@ -6,13 +6,13 @@ SaveLoc is a simple web app for bookmarking locations on a map. You can add your
 
 ## Getting started
 
-Open `index.html` directly in your browser, or start a small local server from this folder:
+Open `docs/index.html` directly in your browser, or start a small local server from this folder and navigate to `/docs`:
 
 ```bash
 python3 -m http.server
 ```
 
-Then browse to <http://localhost:8000>.
+Then browse to <http://localhost:8000/docs>.
 
 ### Setup
 
@@ -56,3 +56,5 @@ npm test
 ```
 
 The tests reside in the `tests` directory and cover the main functionality.
+
+All production assets are located in the `docs` folder so the project works out of the box with GitHub Pages.

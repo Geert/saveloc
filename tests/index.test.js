@@ -5,7 +5,7 @@ const { JSDOM } = require('jsdom');
 describe('index.html', () => {
   let dom;
   beforeAll(() => {
-    const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    const html = fs.readFileSync(path.join(__dirname, '..', 'docs', 'index.html'), 'utf8');
     dom = new JSDOM(html);
   });
 

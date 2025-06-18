@@ -3,7 +3,7 @@ const path = require('path');
 const { JSDOM } = require('jsdom');
 
 module.exports = async function loadDom() {
-  let html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  let html = fs.readFileSync(path.join(__dirname, '..', 'docs', 'index.html'), 'utf8');
   html = html
     .replace(/<link[^>]*unpkg[^>]*>/g, '')
     .replace(/<script[^>]*unpkg[^>]*><\/script>/g, '')
@@ -137,8 +137,8 @@ module.exports = async function loadDom() {
     return mod;
   }
 
-  const controllerMod = await loadModule(path.join(__dirname, '..', 'src', 'ui-controller.mjs'));
-  const stateMod = await loadModule(path.join(__dirname, '..', 'src', 'state.mjs'));
+  const controllerMod = await loadModule(path.join(__dirname, '..', 'docs', 'src', 'ui-controller.mjs'));
+  const stateMod = await loadModule(path.join(__dirname, '..', 'docs', 'src', 'state.mjs'));
   const controllerNs = controllerMod.namespace;
   const stateNs = stateMod.namespace;
   dom.window.appState = stateNs.default;

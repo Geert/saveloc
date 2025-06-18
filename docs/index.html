@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>MarketLocations - Save Your Market Spots</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <title>SaveLoc - Bookmark Locations</title>
+    <link rel="stylesheet" href="vendor/leaflet.css">
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#007bff">
@@ -51,12 +51,12 @@
                     <input type="text" id="editLocationLabelDrawer" placeholder="E.g., Home, Work">
                 </div>
                 <div>
-                    <label for="editLocationLatDrawer">Latitude:</label>
-                    <input type="text" id="editLocationLatDrawer" readonly>
+                <label for="editLocationLatDrawer">Latitude:</label>
+                <input type="number" id="editLocationLatDrawer" step="0.000001">
                 </div>
                 <div>
-                    <label for="editLocationLngDrawer">Longitude:</label>
-                    <input type="text" id="editLocationLngDrawer" readonly>
+                <label for="editLocationLngDrawer">Longitude:</label>
+                <input type="number" id="editLocationLngDrawer" step="0.000001">
                 </div>
                 <div class="form-buttons-container">
                     <button type="button" id="updateLocationToCurrentBtn" class="btn btn-update">🎯 Update to Current</button>
@@ -78,11 +78,11 @@
             </div>
             <div>
                 <label for="locationLat">Latitude:</label>
-                <input type="text" id="locationLat" readonly>
+                <input type="number" id="locationLat" step="0.000001">
             </div>
             <div>
                 <label for="locationLng">Longitude:</label>
-                <input type="text" id="locationLng" readonly>
+                <input type="number" id="locationLng" step="0.000001">
             </div>
             <div class="form-buttons-container">
                 <button type="button" id="saveLocationBtn" class="btn btn-primary">Save Location</button>
@@ -94,13 +94,20 @@
     <!-- Footer can be minimal or removed if drawer takes up space -->
     <!-- 
     <footer>
-        <p>&copy; 2024 MarketLocations</p>
+        <p>&copy; 2024 SaveLoc</p>
     </footer> 
     -->
 
     <div id="notification-container"></div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="script.js"></script>
-</body>
+    <script src="vendor/leaflet.js"></script>
+    <script type="module" src="main.mjs"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('service-worker.js');
+        });
+      }
+    </script>
+  </body>
 </html>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'saveloc-static-v1';
+const CACHE_NAME = 'saveloc-static-v2';
 const TILE_CACHE = 'saveloc-tiles-v1';
 const STATIC_ASSETS = [
   './',

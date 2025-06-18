@@ -143,7 +143,7 @@ import { requestLocationPermission } from "./permission.mjs";
       storage.saveLocations();
       mapModule.renderLocationsList();
     }
-    hideEditForm();
+    closeDrawer();
   }
 
   function updateEditLocationToCurrent() {
@@ -319,7 +319,7 @@ import { requestLocationPermission } from "./permission.mjs";
     if (closeDrawerBtn) closeDrawerBtn.addEventListener('click', closeDrawer);
     if (editModeBtn) editModeBtn.addEventListener('click', toggleEditMode);
     if (saveLocationDrawerBtn) saveLocationDrawerBtn.addEventListener('click', saveEditedLocation);
-    if (cancelEditDrawerBtn) cancelEditDrawerBtn.addEventListener('click', hideEditForm);
+    if (cancelEditDrawerBtn) cancelEditDrawerBtn.addEventListener('click', closeDrawer);
     if (updateLocationToCurrentBtn) updateLocationToCurrentBtn.addEventListener('click', updateEditLocationToCurrent);
     if (editLocationLatDrawer) editLocationLatDrawer.addEventListener('input', handleCoordinateInput);
     if (editLocationLngDrawer) editLocationLngDrawer.addEventListener('input', handleCoordinateInput);

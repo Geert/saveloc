@@ -8,11 +8,27 @@
   const STORAGE_KEY = 'savedLocations';
 
   function loadLocations() {
-    state.locations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    state.locations = [];
+    try {
+      if (typeof localStorage === 'undefined') return;
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        state.locations = parsed.filter(item => item && typeof item === 'object');
+      }
+    } catch (e) {
+      // Leave locations empty when storage is inaccessible or corrupted
+    }
   }
 
   function saveLocations() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.locations));
+    try {
+      if (typeof localStorage === 'undefined') return;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.locations));
+    } catch (e) {
+      // Ignore storage errors (e.g., quota exceeded, unavailable)
+    }
   }
 
   return { loadLocations, saveLocations, STORAGE_KEY };

@@ -127,4 +127,3 @@ export function updateMarkerPosition(id, lat, lng) {
   }
 }
 
-export default { loadMap, initMap, createLabelIcon, renderLocationsList, setMarkerClickHandler, updateMarkerPosition };

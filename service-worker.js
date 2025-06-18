@@ -13,7 +13,7 @@ const STATIC_ASSETS = [
   './src/storage.mjs',
   './src/permission.mjs',
   './src/map.mjs',
-  './src/data-layer.mjs',
+  './src/locations.mjs',
   './src/ui-controller.mjs'
 ];
 

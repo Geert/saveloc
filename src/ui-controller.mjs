@@ -1,4 +1,4 @@
-import * as dataLayer from "./data-layer.mjs";
+import * as locationModel from "./locations.mjs";
 import appState from "./state.mjs";
 import * as storage from "./storage.mjs";
 import { showNotification } from "./ui.mjs";
@@ -343,7 +343,7 @@ import { requestLocationPermission } from "./permission.mjs";
   }
 
   function init() {
-    dataLayer.loadLocations();
+    locationModel.loadLocations();
     attachEventListeners();
     mapModule.setMarkerClickHandler(showEditForm);
     mapModule.loadMap().then(() => {
@@ -353,10 +353,10 @@ import { requestLocationPermission } from "./permission.mjs";
   }
 
   const testApi = {
-    setLocations: dataLayer.setLocations,
-    getLocations: dataLayer.getLocations,
-    loadLocations: dataLayer.loadLocations,
-    saveLocations: dataLayer.saveLocations,
+    setLocations: locationModel.setLocations,
+    getLocations: locationModel.getLocations,
+    loadLocations: locationModel.loadLocations,
+    saveLocations: locationModel.saveLocations,
     showNotification: showNotification,
     exportToXml,
     requestLocationPermission: requestLocationPermission,

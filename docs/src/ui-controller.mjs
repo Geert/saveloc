@@ -462,6 +462,9 @@ import { t } from "../i18n.mjs";
     toggleDrawer,
     closeDrawer,
     updateMarkerPosition: mapModule.updateMarkerPosition,
+    setBaseLayer: mapModule.setBaseLayer,
+    getBaseLayerNames: mapModule.getBaseLayerNames,
+    getCurrentBaseLayerName: mapModule.getCurrentBaseLayerName,
     forceRefresh
   };
 

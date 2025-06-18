@@ -5,7 +5,7 @@ const { JSDOM } = require('jsdom');
 describe('UI elements', () => {
   let document;
   beforeAll(() => {
-    const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    const html = fs.readFileSync(path.join(__dirname, '..', 'docs', 'index.html'), 'utf8');
     const dom = new JSDOM(html);
     document = dom.window.document;
   });

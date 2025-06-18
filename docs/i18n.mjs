@@ -39,6 +39,7 @@ export const translations = {
     location_permission_denied: 'Location permission denied.',
     location_permission_denied_enable: 'Location permission denied. Enable it in your browser settings.',
     force_refresh: 'Force Refresh',
+    map_layer: 'Map Layer',
     no_internet: 'No internet connection. Unable to refresh.'
   },
   nl: {
@@ -81,6 +82,7 @@ export const translations = {
     location_permission_denied: 'Locatietoestemming geweigerd.',
     location_permission_denied_enable: 'Locatietoestemming geweigerd. Schakel dit in je browser in.',
     force_refresh: 'Ververs alles',
+    map_layer: 'Kaartlaag',
     no_internet: 'Geen internetverbinding. Kan niet verversen.'
   },
   de: {
@@ -123,6 +125,7 @@ export const translations = {
     location_permission_denied: 'Standortberechtigung verweigert.',
     location_permission_denied_enable: 'Standortberechtigung verweigert. Aktiviere sie in deinen Browsereinstellungen.',
     force_refresh: 'Alles neu laden',
+    map_layer: 'Kartenansicht',
     no_internet: 'Keine Internetverbindung. Aktualisierung nicht möglich.'
   }
 };

@@ -185,6 +185,20 @@ import { t } from "../i18n.mjs";
     }
   }
 
+  function populateLayerSelect() {
+    const select = document.getElementById('mapLayerSelect');
+    if (!select) return;
+    const names = mapModule.getBaseLayerNames();
+    select.innerHTML = '';
+    names.forEach(n => {
+      const opt = document.createElement('option');
+      opt.value = n;
+      opt.textContent = n;
+      select.appendChild(opt);
+    });
+    select.value = mapModule.getCurrentBaseLayerName();
+  }
+
   function addOrUpdateLocation() {
     const labelInput = document.getElementById('locationLabel');
     const latInput = document.getElementById('locationLat');
@@ -353,8 +367,9 @@ import { t } from "../i18n.mjs";
    const importXmlInput = document.getElementById('importXmlInput');
    const locationsListUL = document.getElementById('locationsList');
     const viewSavedLocationsBtn = document.getElementById('viewSavedLocationsBtn');
-    const forceRefreshBtn = document.getElementById('forceRefreshBtn');
-    const closeSavedLocationsBtn = document.getElementById('closeSavedLocationsBtn');
+   const forceRefreshBtn = document.getElementById('forceRefreshBtn');
+   const closeSavedLocationsBtn = document.getElementById('closeSavedLocationsBtn');
+   const mapLayerSelect = document.getElementById('mapLayerSelect');
 
     if (saveLocationBtn) saveLocationBtn.addEventListener('click', addOrUpdateLocation);
     if (cancelFormBtn) cancelFormBtn.addEventListener('click', hideAddForm);
@@ -383,9 +398,13 @@ import { t } from "../i18n.mjs";
     });
     if (closeSavedLocationsBtn) closeSavedLocationsBtn.addEventListener('click', hideSavedLocations);
 
-    if (forceRefreshBtn) forceRefreshBtn.addEventListener('click', () => {
-      closeDrawer();
-      forceRefresh();
+   if (forceRefreshBtn) forceRefreshBtn.addEventListener('click', () => {
+     closeDrawer();
+     forceRefresh();
+   });
+
+    if (mapLayerSelect) mapLayerSelect.addEventListener('change', e => {
+      mapModule.setBaseLayer(e.target.value);
     });
 
     document.addEventListener('keydown', e => {
@@ -408,6 +427,7 @@ import { t } from "../i18n.mjs";
     mapModule.setMarkerClickHandler(showEditForm);
     mapModule.loadMap().then(() => {
       mapModule.renderLocationsList();
+      populateLayerSelect();
       requestLocationPermission();
     });
   }

@@ -216,18 +216,38 @@
         ui.showNotification('No locations to export.', 'info');
         return;
       }
-      let xmlString = '<?xml version="1.0" encoding="UTF-16" standalone="no"?>\n<root>\n';
+
+      const xmlDoc = document.implementation.createDocument(null, 'root', null);
       state.locations.forEach((loc, index) => {
-        xmlString += '  <plaatsen>\n';
-        xmlString += `    <id>${loc.id || index}</id>\n`;
-        xmlString += `    <lat>${loc.lat}</lat>\n`;
-        xmlString += `    <lng>${loc.lng}</lng>\n`;
-        const escapedLabel = loc.label ? loc.label.replace(/[<>&'\"]/g, c => '&#' + c.charCodeAt(0) + ';') : '';
-        xmlString += `    <label>${escapedLabel}</label>\n`;
-        xmlString += '  </plaatsen>\n';
+        const plaats = xmlDoc.createElement('plaatsen');
+
+        const id = xmlDoc.createElement('id');
+        id.textContent = loc.id || index;
+        plaats.appendChild(id);
+
+        const lat = xmlDoc.createElement('lat');
+        lat.textContent = loc.lat;
+        plaats.appendChild(lat);
+
+        const lng = xmlDoc.createElement('lng');
+        lng.textContent = loc.lng;
+        plaats.appendChild(lng);
+
+        const label = xmlDoc.createElement('label');
+        label.textContent = loc.label || '';
+        plaats.appendChild(label);
+
+        xmlDoc.documentElement.appendChild(plaats);
       });
-      xmlString += '</root>';
-      const blob = new Blob([xmlString], { type: 'application/xml;charset=utf-16' });
+
+      const serializer = new XMLSerializer();
+      const xmlString =
+        '<?xml version="1.0" encoding="UTF-16" standalone="no"?>\n' +
+        serializer.serializeToString(xmlDoc);
+
+      const blob = new Blob([xmlString], {
+        type: 'application/xml;charset=utf-16'
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

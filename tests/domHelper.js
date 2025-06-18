@@ -35,23 +35,39 @@ module.exports = async function loadDom() {
   dom.window.setImmediate = fn => setImmediate(fn);
 
   // Minimal Leaflet stub so main.js can run
+  const markers = [];
   dom.window.L = {
     map: () => ({ setView: () => {}, on: () => {}, addLayer: () => {},
       remove: () => {}, fitBounds: () => {} }),
     tileLayer: () => ({ addTo: () => {} }),
     divIcon: () => ({}),
-    layerGroup: () => ({ addTo: () => ({ clearLayers: () => {} }) }),
+    layerGroup: () => ({ addTo: () => ({ clearLayers: () => {} }), clearLayers: () => {} }),
     control: { layers: () => ({ addTo: () => {} }) },
-    marker: () => ({
-      addTo: () => ({ on: () => {}, setPopupContent: () => {}, openPopup: () => {}, isPopupOpen: () => false, locationId: '', dragging: { enabled: () => false, disable: () => {} } }),
-      on: () => {},
-      setPopupContent: () => {},
-      openPopup: () => {},
-      isPopupOpen: () => false,
-      locationId: '',
-      dragging: { enabled: () => false, disable: () => {} }
-    })
+    marker: (latLng = [0,0], opts = {}) => {
+      const events = {};
+      let coords = { lat: latLng[0], lng: latLng[1] };
+      const marker = {
+        options: opts,
+        addTo: () => marker,
+        on: (evt, handler) => { events[evt] = handler; return marker; },
+        getLatLng: () => coords,
+        setLatLng: ll => { coords = { lat: ll.lat, lng: ll.lng }; },
+        setPopupContent: () => marker,
+        openPopup: () => marker,
+        isPopupOpen: () => false,
+        locationId: '',
+        dragging: {
+          enabled: () => !!opts.draggable,
+          enable: () => { opts.draggable = true; },
+          disable: () => { opts.draggable = false; }
+        },
+        trigger: evt => { if (events[evt]) events[evt]({ target: marker }); }
+      };
+      markers.push(marker);
+      return marker;
+    }
   };
+  dom.window.L.__markers = markers;
 
   const modules = ['src/state.js', 'src/ui.js', 'src/storage.js', 'src/permission.js', 'src/map.js', 'main.js'];
   modules.forEach(file => {

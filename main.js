@@ -36,24 +36,34 @@
     const importXmlBtnTrigger = document.getElementById('importXmlBtnTrigger');
     const importXmlInput = document.getElementById('importXmlInput');
 
+    let lastFocusAddForm = null;
+    let lastFocusDrawer = null;
+    let lastFocusEditForm = null;
+    let currentEditId = null;
+
     function setLocations(arr) { state.locations = arr; }
     function getLocations() { return state.locations; }
 
     function showAddForm(data = {}) {
       if (!locationFormSection) return;
+      lastFocusAddForm = document.activeElement;
       locationIdInput.value = data.id || '';
       locationLabelInput.value = data.label || '';
       locationLatInput.value = data.lat || '';
       locationLngInput.value = data.lng || '';
       locationFormSection.classList.remove('hidden');
+      locationLabelInput.focus();
     }
 
     function hideAddForm() {
       if (locationFormSection) locationFormSection.classList.add('hidden');
+      if (lastFocusAddForm) lastFocusAddForm.focus();
     }
 
-    function showEditForm(loc) {
-      if (!bottomDrawer || !editFormDrawerSection) return;
+   function showEditForm(loc) {
+     if (!bottomDrawer || !editFormDrawerSection) return;
+      lastFocusEditForm = document.activeElement;
+      currentEditId = loc.id;
       bottomDrawer.classList.add('visible');
       if (drawerContent) drawerContent.classList.add('hidden');
       editFormDrawerSection.classList.remove('hidden');
@@ -61,17 +71,29 @@
       editLocationLabelDrawer.value = loc.label || '';
       editLocationLatDrawer.value = loc.lat;
       editLocationLngDrawer.value = loc.lng;
+      editLocationLabelDrawer.focus();
     }
 
-    function hideEditForm() {
-      if (!bottomDrawer || !editFormDrawerSection) return;
+   function hideEditForm() {
+     if (!bottomDrawer || !editFormDrawerSection) return;
       editFormDrawerSection.classList.add('hidden');
       if (drawerContent) drawerContent.classList.remove('hidden');
+      if (lastFocusEditForm) lastFocusEditForm.focus();
+      currentEditId = null;
     }
 
-    function toggleDrawer() {
+   function toggleDrawer() {
       if (!bottomDrawer) return;
-      bottomDrawer.classList.toggle('visible');
+      const willOpen = !bottomDrawer.classList.contains('visible');
+      if (willOpen) {
+        lastFocusDrawer = document.activeElement;
+        bottomDrawer.classList.add('visible');
+        closeDrawerBtn.focus();
+      } else {
+        bottomDrawer.classList.remove('visible');
+        if (lastFocusDrawer) lastFocusDrawer.focus();
+        hideEditForm();
+      }
       if (state.map) setTimeout(() => state.map.invalidateSize(), 300);
     }
 
@@ -79,6 +101,7 @@
       if (!bottomDrawer) return;
       bottomDrawer.classList.remove('visible');
       hideEditForm();
+      if (lastFocusDrawer) lastFocusDrawer.focus();
       if (state.map) setTimeout(() => state.map.invalidateSize(), 300);
     }
 
@@ -142,7 +165,17 @@
       navigator.geolocation.getCurrentPosition(pos => {
         editLocationLatDrawer.value = pos.coords.latitude.toFixed(6);
         editLocationLngDrawer.value = pos.coords.longitude.toFixed(6);
+        handleCoordinateInput();
       });
+    }
+
+    function handleCoordinateInput() {
+      if (!currentEditId) return;
+      const lat = parseFloat(editLocationLatDrawer.value);
+      const lng = parseFloat(editLocationLngDrawer.value);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        mapModule.updateMarkerPosition(currentEditId, lat, lng);
+      }
     }
 
     function addOrUpdateLocation(context = 'new') {
@@ -270,6 +303,8 @@
     if (saveLocationDrawerBtn) saveLocationDrawerBtn.addEventListener('click', saveEditedLocation);
     if (cancelEditDrawerBtn) cancelEditDrawerBtn.addEventListener('click', hideEditForm);
     if (updateLocationToCurrentBtn) updateLocationToCurrentBtn.addEventListener('click', updateEditLocationToCurrent);
+    if (editLocationLatDrawer) editLocationLatDrawer.addEventListener('input', handleCoordinateInput);
+    if (editLocationLngDrawer) editLocationLngDrawer.addEventListener('input', handleCoordinateInput);
     if (importXmlBtnTrigger && importXmlInput) {
       importXmlBtnTrigger.addEventListener('click', () => importXmlInput.click());
       importXmlInput.addEventListener('change', handleFileImport);
@@ -306,7 +341,14 @@
       createLabelIcon: mapModule.createLabelIcon,
       addOrUpdateLocation,
       clearAllLocations,
-      renderLocationsList: mapModule.renderLocationsList
+      renderLocationsList: mapModule.renderLocationsList,
+      showAddForm,
+      hideAddForm,
+      showEditForm,
+      hideEditForm,
+      toggleDrawer,
+      closeDrawer,
+      updateMarkerPosition: mapModule.updateMarkerPosition
     };
   });
 })();

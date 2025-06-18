@@ -39,6 +39,10 @@ request, enable location access for the page in your browser settings.
 
 Use the menu to export all locations to an XML file or import from an existing file. Saved locations are stored in your browser's `localStorage` so they remain available on your device.
 
+## Accessibility
+
+The application supports keyboard navigation. When forms or the drawer open, focus moves to the first input so screen reader users know where to start. You can reposition markers without using a mouse by editing the latitude and longitude fields in the edit drawer; changes update the marker on the map immediately.
+
 ## Running tests
 
 After installing dependencies run:

@@ -14,6 +14,21 @@ python3 -m http.server
 
 Then browse to <http://localhost:8000>.
 
+### Setup
+
+Install dependencies and run the test suite with:
+
+```bash
+npm install
+npm test
+```
+
+To launch the app locally:
+
+```bash
+python3 -m http.server
+```
+
 ## Location Permission
 
 SaveLoc needs access to your browser's Geolocation API when adding a location.
@@ -26,13 +41,10 @@ Use the menu to export all locations to an XML file or import from an existing f
 
 ## Running tests
 
-To run the automated Jest test suite make sure you have Node.js installed. Then
-install the dependencies and execute the tests with:
+After installing dependencies run:
 
 ```bash
-npm install
 npm test
 ```
 
-The tests are located in the `tests` directory and cover key functionality of
-the application.
+The tests reside in the `tests` directory and cover the main functionality.

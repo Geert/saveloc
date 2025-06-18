@@ -100,6 +100,11 @@ html, body {
     color: #333;
 }
 
+.drawer-header .app-title {
+    flex-grow: 1;
+    text-align: center;
+}
+
 #closeDrawerBtn {
     background: none;
     border: none;

@@ -20,6 +20,7 @@
 
     const hamburgerBtn = document.getElementById('hamburgerBtn');
     const bottomDrawer = document.getElementById('bottom-drawer');
+    const closeDrawerBtn = document.getElementById('closeDrawerBtn');
     const editModeBtn = document.getElementById('editModeBtn');
     const drawerContent = document.getElementById('drawer-main-content');
     const editFormDrawerSection = document.getElementById('edit-form-drawer-section');
@@ -71,6 +72,13 @@
     function toggleDrawer() {
       if (!bottomDrawer) return;
       bottomDrawer.classList.toggle('visible');
+      if (state.map) setTimeout(() => state.map.invalidateSize(), 300);
+    }
+
+    function closeDrawer() {
+      if (!bottomDrawer) return;
+      bottomDrawer.classList.remove('visible');
+      hideEditForm();
       if (state.map) setTimeout(() => state.map.invalidateSize(), 300);
     }
 
@@ -257,6 +265,7 @@
     if (exportXmlBtn) exportXmlBtn.addEventListener('click', exportToXml);
     if (addLocationBtn) addLocationBtn.addEventListener('click', handleAddLocationClick);
     if (hamburgerBtn) hamburgerBtn.addEventListener('click', toggleDrawer);
+    if (closeDrawerBtn) closeDrawerBtn.addEventListener('click', closeDrawer);
     if (editModeBtn) editModeBtn.addEventListener('click', toggleEditMode);
     if (saveLocationDrawerBtn) saveLocationDrawerBtn.addEventListener('click', saveEditedLocation);
     if (cancelEditDrawerBtn) cancelEditDrawerBtn.addEventListener('click', hideEditForm);
@@ -265,6 +274,10 @@
       importXmlBtnTrigger.addEventListener('click', () => importXmlInput.click());
       importXmlInput.addEventListener('change', handleFileImport);
     }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeDrawer();
+    });
 
     storage.loadLocations();
     mapModule.setMarkerClickHandler(showEditForm);

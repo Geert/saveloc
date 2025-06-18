@@ -7,6 +7,7 @@ beforeAll(async () => {
   window = dom.window;
   document = window.document;
   saveLocTest = window.saveLocTest;
+  document.dispatchEvent(new window.Event('DOMContentLoaded'));
 });
 
 beforeEach(() => {

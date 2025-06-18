@@ -6,4 +6,3 @@ export function getLocations() { return appState.locations; }
 export function loadLocations() { storageLoad(); }
 export function saveLocations() { storageSave(); }
 
-export default { setLocations, getLocations, loadLocations, saveLocations };

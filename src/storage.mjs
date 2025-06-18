@@ -26,4 +26,3 @@ export function saveLocations() {
   }
 }
 
-export default { loadLocations, saveLocations, STORAGE_KEY };

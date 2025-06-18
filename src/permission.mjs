@@ -22,4 +22,3 @@ export async function requestLocationPermission() {
   }
 }
 
-export default { requestLocationPermission };

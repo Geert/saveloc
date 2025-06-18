@@ -191,6 +191,7 @@ import { requestLocationPermission } from "./permission.mjs";
   }
 
   function clearAllLocations() {
+    closeDrawer();
     if (appState.locations.length === 0) {
       showNotification('There are no locations to clear.', 'info');
       return;

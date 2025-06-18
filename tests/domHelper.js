@@ -9,7 +9,9 @@ module.exports = async function loadDom() {
     .replace(/<script[^>]*unpkg[^>]*><\/script>/g, '')
     .replace(/<script[^>]*src="main.mjs"[^>]*><\/script>/, '')
     .replace(/<script[^>]*src="src\/[^"]*"[^>]*><\/script>/g, '')
-    .replace(/<link[^>]*href="style.css"[^>]*>/, '');
+    .replace(/<link[^>]*href="style.css"[^>]*>/, '')
+    .replace(/<link[^>]*href="vendor\/leaflet\.css"[^>]*>/, '')
+    .replace(/<script[^>]*src="vendor\/leaflet\.js"[^>]*><\/script>/, '');
   const dom = new JSDOM(html, { runScripts: 'dangerously', resources: 'usable', url: 'http://localhost' });
 
   // Remove external styles/scripts to avoid network access

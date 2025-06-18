@@ -63,3 +63,14 @@ test('import action closes the drawer', async () => {
   await new Promise(res => setTimeout(res, 50));
   expect(drawer.classList.contains('visible')).toBe(false);
 });
+
+test('clear list action closes the drawer', () => {
+  saveLocTest.setLocations([{ id: '1', lat: 1, lng: 2, label: 'A' }]);
+  saveLocTest.toggleDrawer();
+  const drawer = document.getElementById('bottom-drawer');
+  expect(drawer.classList.contains('visible')).toBe(true);
+  window.confirm = jest.fn(() => true);
+  global.confirm = window.confirm;
+  saveLocTest.clearAllLocations();
+  expect(drawer.classList.contains('visible')).toBe(false);
+});

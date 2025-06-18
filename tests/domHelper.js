@@ -59,6 +59,7 @@ module.exports = async function loadDom() {
         getZoom: () => map.zoom,
         on: () => map,
         addLayer: () => map,
+        removeLayer: () => map,
         remove: () => {},
         fitBounds: () => {},
         invalidateSize: () => {}

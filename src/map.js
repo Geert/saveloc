@@ -1,4 +1,6 @@
 /** Map handling and marker rendering */
+const PREFERRED_MAP_LAYER_KEY = 'preferredMapLayerName';
+
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
     module.exports = factory(require('./state'), require('./ui'), require('./storage'));
@@ -20,9 +22,46 @@
 
   function initMap() {
     state.map = L.map('map').setView([51.505, -0.09], 2);
-    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 20 });
-    osmLayer.addTo(state.map);
+
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 20
+    });
+
+    const cartoPositron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      subdomains: 'abcd',
+      maxZoom: 20
+    });
+
+    const cartoDarkMatter = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      subdomains: 'abcd',
+      maxZoom: 20
+    });
+
+    const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles \xA9 Esri',
+      maxZoom: 20
+    });
+
+    const baseMaps = {
+      'Satellite': esriSatellite,
+      'OpenStreetMap': osmLayer,
+      'Carto Light': cartoPositron,
+      'Carto Dark': cartoDarkMatter
+    };
+
+    const preferredLayerName = localStorage.getItem(PREFERRED_MAP_LAYER_KEY);
+    let defaultLayer = osmLayer;
+    if (preferredLayerName && baseMaps[preferredLayerName]) {
+      defaultLayer = baseMaps[preferredLayerName];
+    }
+    defaultLayer.addTo(state.map);
+
     state.markersLayer = L.layerGroup().addTo(state.map);
+    const overlayMaps = { 'Locations': state.markersLayer };
+    L.control.layers(baseMaps, overlayMaps).addTo(state.map);
+    state.map.on('baselayerchange', e => {
+      localStorage.setItem(PREFERRED_MAP_LAYER_KEY, e.name);
+    });
   }
 
   function createLabelIcon(labelText, locId) {

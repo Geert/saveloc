@@ -37,7 +37,9 @@ export const translations = {
     an_error_occurred: 'An error occurred while processing the XML file.',
     error_reading_file: 'Error reading file.',
     location_permission_denied: 'Location permission denied.',
-    location_permission_denied_enable: 'Location permission denied. Enable it in your browser settings.'
+    location_permission_denied_enable: 'Location permission denied. Enable it in your browser settings.',
+    force_refresh: 'Force Refresh',
+    no_internet: 'No internet connection. Unable to refresh.'
   },
   nl: {
     title: 'SaveLoc - Locaties opslaan',
@@ -77,7 +79,9 @@ export const translations = {
     an_error_occurred: 'Er is een fout opgetreden bij het verwerken van het XML-bestand.',
     error_reading_file: 'Fout bij het lezen van het bestand.',
     location_permission_denied: 'Locatietoestemming geweigerd.',
-    location_permission_denied_enable: 'Locatietoestemming geweigerd. Schakel dit in je browser in.'
+    location_permission_denied_enable: 'Locatietoestemming geweigerd. Schakel dit in je browser in.',
+    force_refresh: 'Ververs alles',
+    no_internet: 'Geen internetverbinding. Kan niet verversen.'
   },
   de: {
     title: 'SaveLoc - Orte speichern',
@@ -117,7 +121,9 @@ export const translations = {
     an_error_occurred: 'Beim Verarbeiten der XML-Datei ist ein Fehler aufgetreten.',
     error_reading_file: 'Fehler beim Lesen der Datei.',
     location_permission_denied: 'Standortberechtigung verweigert.',
-    location_permission_denied_enable: 'Standortberechtigung verweigert. Aktiviere sie in deinen Browsereinstellungen.'
+    location_permission_denied_enable: 'Standortberechtigung verweigert. Aktiviere sie in deinen Browsereinstellungen.',
+    force_refresh: 'Alles neu laden',
+    no_internet: 'Keine Internetverbindung. Aktualisierung nicht möglich.'
   }
 };
 

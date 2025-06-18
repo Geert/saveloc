@@ -37,8 +37,17 @@ module.exports = async function loadDom() {
   // Minimal Leaflet stub so main.js can run
   const markers = [];
   dom.window.L = {
-    map: () => ({ setView: () => {}, on: () => {}, addLayer: () => {},
-      remove: () => {}, fitBounds: () => {} }),
+    map: () => {
+      const map = {
+        setView: () => map,
+        on: () => map,
+        addLayer: () => map,
+        remove: () => {},
+        fitBounds: () => {},
+        invalidateSize: () => {}
+      };
+      return map;
+    },
     tileLayer: () => ({ addTo: () => {} }),
     divIcon: () => ({}),
     layerGroup: () => ({ addTo: () => ({ clearLayers: () => {} }), clearLayers: () => {} }),

@@ -1,24 +1,10 @@
-(function(root, factory) {
-  if (typeof module === 'object' && module.exports) {
-    module.exports = factory(
-      require('./data-layer'),
-      require('./state'),
-      require('./storage'),
-      require('./ui'),
-      require('./map'),
-      require('./permission')
-    );
-  } else {
-    root.uiController = factory(
-      root.dataLayer,
-      root.appState,
-      root.storage,
-      root.ui,
-      root.mapModule,
-      root.permission
-    );
-  }
-}(typeof self !== 'undefined' ? self : this, function(dataLayer, state, storage, ui, mapModule, permission) {
+import * as dataLayer from "./data-layer.mjs";
+import appState from "./state.mjs";
+import * as storage from "./storage.mjs";
+import { showNotification } from "./ui.mjs";
+import * as mapModule from "./map.mjs";
+import { requestLocationPermission } from "./permission.mjs";
+
   function showAddForm(data = {}) {
     const section = document.getElementById('location-form-section');
     const idInput = document.getElementById('locationId');
@@ -87,7 +73,7 @@
       if (toggleDrawer.lastFocus) toggleDrawer.lastFocus.focus();
       hideEditForm();
     }
-    if (state.map) setTimeout(() => state.map.invalidateSize(), 300);
+    if (appState.map) setTimeout(() => appState.map.invalidateSize(), 300);
   }
 
   function closeDrawer() {
@@ -96,14 +82,14 @@
     drawer.classList.remove('visible');
     hideEditForm();
     if (toggleDrawer.lastFocus) toggleDrawer.lastFocus.focus();
-    if (state.map) setTimeout(() => state.map.invalidateSize(), 300);
+    if (appState.map) setTimeout(() => appState.map.invalidateSize(), 300);
   }
 
   function toggleEditMode() {
-    state.isInEditMode = !state.isInEditMode;
+    appState.isInEditMode = !appState.isInEditMode;
     const editModeBtn = document.getElementById('editModeBtn');
     if (editModeBtn) {
-      editModeBtn.textContent = state.isInEditMode ? 'Exit Edit Mode' : 'Enter Edit Mode';
+      editModeBtn.textContent = appState.isInEditMode ? 'Exit Edit Mode' : 'Enter Edit Mode';
     }
     mapModule.renderLocationsList();
   }
@@ -111,8 +97,8 @@
   function handleAddLocationClick() {
     const addBtn = document.getElementById('addLocationBtn');
     if (!navigator.geolocation) {
-      const nextLabel = (state.locations.length + 1).toString();
-      ui.showNotification('Geolocation is not supported by your browser', 'error');
+      const nextLabel = (appState.locations.length + 1).toString();
+      showNotification('Geolocation is not supported by your browser', 'error');
       showAddForm({ label: nextLabel });
       return;
     }
@@ -120,7 +106,7 @@
     addBtn.textContent = 'Fetching...';
     navigator.geolocation.getCurrentPosition(
       pos => {
-        const nextLabel = (state.locations.length + 1).toString();
+        const nextLabel = (appState.locations.length + 1).toString();
         showAddForm({
           lat: pos.coords.latitude.toFixed(6),
           lng: pos.coords.longitude.toFixed(6),
@@ -130,8 +116,8 @@
         addBtn.textContent = 'Add Location';
       },
       err => {
-        ui.showNotification(`Error getting current location: ${err.message}`, 'error');
-        const nextLabel = (state.locations.length + 1).toString();
+        showNotification(`Error getting current location: ${err.message}`, 'error');
+        const nextLabel = (appState.locations.length + 1).toString();
         showAddForm({ label: nextLabel });
         addBtn.disabled = false;
         addBtn.textContent = 'Add Location';
@@ -146,10 +132,10 @@
     const latField = document.getElementById('editLocationLatDrawer');
     const lngField = document.getElementById('editLocationLngDrawer');
     const id = idField.value;
-    const index = state.locations.findIndex(l => l.id === id);
+    const index = appState.locations.findIndex(l => l.id === id);
     if (index > -1) {
-      state.locations[index] = {
-        ...state.locations[index],
+      appState.locations[index] = {
+        ...appState.locations[index],
         label: labelField.value.trim(),
         lat: parseFloat(latField.value),
         lng: parseFloat(lngField.value)
@@ -188,7 +174,7 @@
     const lat = parseFloat(latInput.value);
     const lng = parseFloat(lngInput.value);
     if (!label || isNaN(lat) || isNaN(lng)) {
-      ui.showNotification('Invalid input', 'error');
+      showNotification('Invalid input', 'error');
       return;
     }
     const newLocation = {
@@ -198,31 +184,31 @@
       lng,
       timestamp: new Date().toISOString()
     };
-    state.locations.push(newLocation);
+    appState.locations.push(newLocation);
     storage.saveLocations();
     mapModule.renderLocationsList();
     hideAddForm();
   }
 
   function clearAllLocations() {
-    if (state.locations.length === 0) {
-      ui.showNotification('There are no locations to clear.', 'info');
+    if (appState.locations.length === 0) {
+      showNotification('There are no locations to clear.', 'info');
       return;
     }
     if (confirm('Are you sure you want to delete ALL locations? This cannot be undone.')) {
-      state.locations = [];
+      appState.locations = [];
       storage.saveLocations();
       mapModule.renderLocationsList();
     }
   }
 
   function exportToXml() {
-    if (state.locations.length === 0) {
-      ui.showNotification('No locations to export.', 'info');
+    if (appState.locations.length === 0) {
+      showNotification('No locations to export.', 'info');
       return;
     }
     const xmlDoc = document.implementation.createDocument(null, 'root', null);
-    state.locations.forEach((loc, index) => {
+    appState.locations.forEach((loc, index) => {
       const plaats = xmlDoc.createElement('plaatsen');
       const id = xmlDoc.createElement('id');
       id.textContent = loc.id || index;
@@ -263,15 +249,15 @@
         const xmlDoc = parser.parseFromString(xmlString, 'application/xml');
         const errorNode = xmlDoc.querySelector('parsererror');
         if (errorNode) {
-          ui.showNotification('Error parsing XML file. Please check the file format.', 'error');
+          showNotification('Error parsing XML file. Please check the file format.', 'error');
           return;
         }
         const plaatsElements = xmlDoc.getElementsByTagName('plaatsen');
         if (plaatsElements.length === 0) {
-          ui.showNotification('No locations found in the XML file.', 'info');
+          showNotification('No locations found in the XML file.', 'info');
           return;
         }
-        state.locations = [];
+        appState.locations = [];
         let importedCount = 0;
         for (let i = 0; i < plaatsElements.length; i++) {
           const plaats = plaatsElements[i];
@@ -285,22 +271,22 @@
             let label = labelNode ? labelNode.textContent : '';
             if (isNaN(lat) || isNaN(lng)) continue;
             if (!label && idNode.textContent) label = idNode.textContent;
-            state.locations.push({ id: Date.now().toString() + '_' + i, label, lat, lng, timestamp: new Date().toISOString() });
+            appState.locations.push({ id: Date.now().toString() + '_' + i, label, lat, lng, timestamp: new Date().toISOString() });
             importedCount++;
           }
         }
         if (importedCount > 0) {
           storage.saveLocations();
           mapModule.renderLocationsList();
-          ui.showNotification(`${importedCount} location(s) imported successfully.`, 'success');
+          showNotification(`${importedCount} location(s) imported successfully.`, 'success');
         }
       } catch (error) {
-        ui.showNotification('An error occurred while processing the XML file.', 'error');
+        showNotification('An error occurred while processing the XML file.', 'error');
       }
       event.target.value = null;
     };
     reader.onerror = function() {
-      ui.showNotification('Error reading file.', 'error');
+      showNotification('Error reading file.', 'error');
       event.target.value = null;
     };
     reader.readAsText(file);
@@ -350,7 +336,7 @@
       locationsListUL.addEventListener('click', e => {
         const li = e.target.closest('li[data-id]');
         if (!li) return;
-        const loc = state.locations.find(l => l.id === li.dataset.id);
+        const loc = appState.locations.find(l => l.id === li.dataset.id);
         if (loc) showEditForm(loc);
       });
     }
@@ -362,7 +348,7 @@
     mapModule.setMarkerClickHandler(showEditForm);
     mapModule.loadMap().then(() => {
       mapModule.renderLocationsList();
-      permission.requestLocationPermission();
+      requestLocationPermission();
     });
   }
 
@@ -371,12 +357,13 @@
     getLocations: dataLayer.getLocations,
     loadLocations: dataLayer.loadLocations,
     saveLocations: dataLayer.saveLocations,
-    showNotification: ui.showNotification,
+    showNotification: showNotification,
     exportToXml,
-    requestLocationPermission: permission.requestLocationPermission,
+    requestLocationPermission: requestLocationPermission,
     createLabelIcon: mapModule.createLabelIcon,
     addOrUpdateLocation,
     clearAllLocations,
+    handleFileImport,
     renderLocationsList: mapModule.renderLocationsList,
     showAddForm,
     hideAddForm,
@@ -387,5 +374,4 @@
     updateMarkerPosition: mapModule.updateMarkerPosition
   };
 
-  return { init, testApi };
-}));
+export default { init, testApi };

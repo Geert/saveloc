@@ -17,6 +17,7 @@ beforeEach(() => {
 test('showNotification appends element with correct classes', () => {
   const container = document.getElementById('notification-container');
   window.setTimeout = jest.fn();
+  global.setTimeout = window.setTimeout;
   saveLocTest.showNotification('hello', 'success', 1000);
   const note = container.querySelector('.notification');
   expect(note).not.toBeNull();
@@ -59,6 +60,7 @@ test('addOrUpdateLocation adds new location from modal inputs', () => {
 test('clearAllLocations empties stored locations when confirmed', () => {
   saveLocTest.setLocations([{ id: '1', lat: 1, lng: 2, label: 'A' }]);
   window.confirm = jest.fn(() => true);
+  global.confirm = window.confirm;
   saveLocTest.clearAllLocations();
   expect(saveLocTest.getLocations()).toEqual([]);
 });

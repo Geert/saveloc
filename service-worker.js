@@ -4,17 +4,17 @@ const STATIC_ASSETS = [
   './',
   './index.html',
   './style.css',
-  './main.js',
+  './main.mjs',
   './manifest.json',
   './icons/icon-192x192.svg',
   './icons/icon-512x512.svg',
-  './src/state.js',
-  './src/ui.js',
-  './src/storage.js',
-  './src/permission.js',
-  './src/map.js',
-  './src/data-layer.js',
-  './src/ui-controller.js'
+  './src/state.mjs',
+  './src/ui.mjs',
+  './src/storage.mjs',
+  './src/permission.mjs',
+  './src/map.mjs',
+  './src/data-layer.mjs',
+  './src/ui-controller.mjs'
 ];
 
 self.addEventListener('install', event => {

@@ -24,8 +24,8 @@ function createFile(content) {
 
 test('handleFileImport imports XML file', async () => {
   const xml = `<?xml version="1.0"?><root><plaatsen><id>1</id><lat>10</lat><lng>20</lng><label>Home</label></plaatsen></root>`;
-  Object.defineProperty(importInput, 'files', { value: [createFile(xml)], configurable: true });
-  importInput.dispatchEvent(new window.Event('change'));
+  const event = { target: { files: [createFile(xml)] } };
+  saveLocTest.handleFileImport(event);
   await new Promise(res => setTimeout(res, 50));
   expect(saveLocTest.getLocations().length).toBe(1);
   const loc = saveLocTest.getLocations()[0];
@@ -36,8 +36,8 @@ test('handleFileImport imports XML file', async () => {
 
 test('handleFileImport ignores invalid XML', async () => {
   const xml = `<root><plaatsen><id>1</id><lat>10</lat></root>`; // missing elements
-  Object.defineProperty(importInput, 'files', { value: [createFile(xml)], configurable: true });
-  importInput.dispatchEvent(new window.Event('change'));
+  const event = { target: { files: [createFile(xml)] } };
+  saveLocTest.handleFileImport(event);
   await new Promise(res => setTimeout(res, 50));
   expect(saveLocTest.getLocations().length).toBe(0);
   const stored = window.localStorage.getItem('savedLocations');

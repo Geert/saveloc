@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Bookmark locations on a map",
   "scripts": {
-    "test": "jest"
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand"
   },
   "devDependencies": {
     "jest": "^29.7.0",

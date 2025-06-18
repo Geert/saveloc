@@ -1,3 +1,4 @@
+/** Map handling and marker rendering */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
     module.exports = factory(require('./state'), require('./ui'), require('./storage'));
@@ -5,6 +6,7 @@
     root.mapModule = factory(root.appState, root.ui, root.storage);
   }
 }(typeof self !== 'undefined' ? self : this, function (state, ui, storage) {
+  let markerClickHandler = null;
   function loadMap() {
     return new Promise((resolve, reject) => {
       try {
@@ -40,6 +42,7 @@
     if (!list || !message) return;
     list.innerHTML = '';
     if (state.markersLayer) state.markersLayer.clearLayers();
+    state.markers = {};
     if (state.locations.length === 0) {
       message.classList.remove('hidden');
       list.classList.add('hidden');
@@ -55,13 +58,33 @@
       li.textContent = loc.label || 'Unnamed';
       list.appendChild(li);
       if (state.map && state.markersLayer) {
-        const marker = L.marker([loc.lat, loc.lng], { icon: createLabelIcon(loc.label, loc.id), draggable: state.isInEditMode }).addTo(state.markersLayer);
+        const marker = L.marker([loc.lat, loc.lng], {
+          icon: createLabelIcon(loc.label, loc.id),
+          draggable: state.isInEditMode
+        }).addTo(state.markersLayer);
         marker.locationId = loc.id;
+        if (markerClickHandler) marker.on('click', () => markerClickHandler(loc));
+        marker.on('dragend', evt => {
+          const m = evt.target.getLatLng();
+          const idx = state.locations.findIndex(l => l.id === loc.id);
+          if (idx > -1) {
+            state.locations[idx].lat = m.lat;
+            state.locations[idx].lng = m.lng;
+            storage.saveLocations();
+            renderLocationsList();
+          }
+        });
+        state.markers[loc.id] = marker;
         bounds.push([loc.lat, loc.lng]);
       }
     });
     if (state.map && bounds.length) state.map.fitBounds(bounds, { padding: [50, 50] });
   }
 
-  return { loadMap, initMap, createLabelIcon, renderLocationsList };
+  function setMarkerClickHandler(fn) {
+    markerClickHandler = fn;
+  }
+
+  return { loadMap, initMap, createLabelIcon, renderLocationsList, setMarkerClickHandler };
 }));
+

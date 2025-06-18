@@ -18,11 +18,124 @@
     const locationIdInput = document.getElementById('locationId');
     const cancelFormBtn = document.getElementById('cancelFormBtn');
 
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const bottomDrawer = document.getElementById('bottom-drawer');
+    const editModeBtn = document.getElementById('editModeBtn');
+    const drawerContent = document.getElementById('drawer-main-content');
+    const editFormDrawerSection = document.getElementById('edit-form-drawer-section');
+    const editLocationIdDrawer = document.getElementById('editLocationIdDrawer');
+    const editLocationLabelDrawer = document.getElementById('editLocationLabelDrawer');
+    const editLocationLatDrawer = document.getElementById('editLocationLatDrawer');
+    const editLocationLngDrawer = document.getElementById('editLocationLngDrawer');
+    const saveLocationDrawerBtn = document.getElementById('saveLocationDrawerBtn');
+    const cancelEditDrawerBtn = document.getElementById('cancelEditDrawerBtn');
+    const updateLocationToCurrentBtn = document.getElementById('updateLocationToCurrentBtn');
+    const locationsListUL = document.getElementById('locationsList');
+
     const importXmlBtnTrigger = document.getElementById('importXmlBtnTrigger');
     const importXmlInput = document.getElementById('importXmlInput');
 
     function setLocations(arr) { state.locations = arr; }
     function getLocations() { return state.locations; }
+
+    function showAddForm(data = {}) {
+      if (!locationFormSection) return;
+      locationIdInput.value = data.id || '';
+      locationLabelInput.value = data.label || '';
+      locationLatInput.value = data.lat || '';
+      locationLngInput.value = data.lng || '';
+      locationFormSection.classList.remove('hidden');
+    }
+
+    function hideAddForm() {
+      if (locationFormSection) locationFormSection.classList.add('hidden');
+    }
+
+    function showEditForm(loc) {
+      if (!bottomDrawer || !editFormDrawerSection) return;
+      bottomDrawer.classList.add('visible');
+      if (drawerContent) drawerContent.classList.add('hidden');
+      editFormDrawerSection.classList.remove('hidden');
+      editLocationIdDrawer.value = loc.id;
+      editLocationLabelDrawer.value = loc.label || '';
+      editLocationLatDrawer.value = loc.lat;
+      editLocationLngDrawer.value = loc.lng;
+    }
+
+    function hideEditForm() {
+      if (!bottomDrawer || !editFormDrawerSection) return;
+      editFormDrawerSection.classList.add('hidden');
+      if (drawerContent) drawerContent.classList.remove('hidden');
+    }
+
+    function toggleDrawer() {
+      if (!bottomDrawer) return;
+      bottomDrawer.classList.toggle('visible');
+      if (state.map) setTimeout(() => state.map.invalidateSize(), 300);
+    }
+
+    function toggleEditMode() {
+      state.isInEditMode = !state.isInEditMode;
+      if (editModeBtn) {
+        editModeBtn.textContent = state.isInEditMode ? 'Exit Edit Mode' : 'Enter Edit Mode';
+      }
+      mapModule.renderLocationsList();
+    }
+
+    function handleAddLocationClick() {
+      if (!navigator.geolocation) {
+        const nextLabel = (state.locations.length + 1).toString();
+        ui.showNotification('Geolocation is not supported by your browser', 'error');
+        showAddForm({ label: nextLabel });
+        return;
+      }
+      addLocationBtn.disabled = true;
+      addLocationBtn.textContent = 'Fetching...';
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const nextLabel = (state.locations.length + 1).toString();
+          showAddForm({
+            lat: pos.coords.latitude.toFixed(6),
+            lng: pos.coords.longitude.toFixed(6),
+            label: nextLabel
+          });
+          addLocationBtn.disabled = false;
+          addLocationBtn.textContent = 'Add Location';
+        },
+        err => {
+          ui.showNotification(`Error getting current location: ${err.message}`, 'error');
+          const nextLabel = (state.locations.length + 1).toString();
+          showAddForm({ label: nextLabel });
+          addLocationBtn.disabled = false;
+          addLocationBtn.textContent = 'Add Location';
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+
+    function saveEditedLocation() {
+      const id = editLocationIdDrawer.value;
+      const index = state.locations.findIndex(l => l.id === id);
+      if (index > -1) {
+        state.locations[index] = {
+          ...state.locations[index],
+          label: editLocationLabelDrawer.value.trim(),
+          lat: parseFloat(editLocationLatDrawer.value),
+          lng: parseFloat(editLocationLngDrawer.value)
+        };
+        storage.saveLocations();
+        mapModule.renderLocationsList();
+      }
+      hideEditForm();
+    }
+
+    function updateEditLocationToCurrent() {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(pos => {
+        editLocationLatDrawer.value = pos.coords.latitude.toFixed(6);
+        editLocationLngDrawer.value = pos.coords.longitude.toFixed(6);
+      });
+    }
 
     function addOrUpdateLocation(context = 'new') {
       const label = locationLabelInput.value.trim();
@@ -42,7 +155,7 @@
       state.locations.push(newLocation);
       storage.saveLocations();
       mapModule.renderLocationsList();
-      if (locationFormSection) locationFormSection.classList.add('hidden');
+      hideAddForm();
     }
 
     function clearAllLocations() {
@@ -139,19 +252,35 @@
     }
 
     if (saveLocationBtn) saveLocationBtn.addEventListener('click', () => addOrUpdateLocation('new'));
-    if (cancelFormBtn) cancelFormBtn.addEventListener('click', () => { if (locationFormSection) locationFormSection.classList.add('hidden'); });
+    if (cancelFormBtn) cancelFormBtn.addEventListener('click', hideAddForm);
     if (clearListBtn) clearListBtn.addEventListener('click', clearAllLocations);
     if (exportXmlBtn) exportXmlBtn.addEventListener('click', exportToXml);
+    if (addLocationBtn) addLocationBtn.addEventListener('click', handleAddLocationClick);
+    if (hamburgerBtn) hamburgerBtn.addEventListener('click', toggleDrawer);
+    if (editModeBtn) editModeBtn.addEventListener('click', toggleEditMode);
+    if (saveLocationDrawerBtn) saveLocationDrawerBtn.addEventListener('click', saveEditedLocation);
+    if (cancelEditDrawerBtn) cancelEditDrawerBtn.addEventListener('click', hideEditForm);
+    if (updateLocationToCurrentBtn) updateLocationToCurrentBtn.addEventListener('click', updateEditLocationToCurrent);
     if (importXmlBtnTrigger && importXmlInput) {
       importXmlBtnTrigger.addEventListener('click', () => importXmlInput.click());
       importXmlInput.addEventListener('change', handleFileImport);
     }
 
     storage.loadLocations();
+    mapModule.setMarkerClickHandler(showEditForm);
     mapModule.loadMap().then(() => {
       mapModule.renderLocationsList();
       permission.requestLocationPermission();
     });
+
+    if (locationsListUL) {
+      locationsListUL.addEventListener('click', e => {
+        const li = e.target.closest('li[data-id]');
+        if (!li) return;
+        const loc = state.locations.find(l => l.id === li.dataset.id);
+        if (loc) showEditForm(loc);
+      });
+    }
 
     window.saveLocTest = {
       setLocations,

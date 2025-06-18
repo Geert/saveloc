@@ -109,5 +109,12 @@
     <script src="src/data-layer.js"></script>
     <script src="src/ui-controller.js"></script>
     <script src="main.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('service-worker.js');
+        });
+      }
+    </script>
   </body>
 </html>

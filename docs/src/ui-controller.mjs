@@ -60,6 +60,22 @@ import { t } from "../i18n.mjs";
     showEditForm.currentId = null;
   }
 
+  function showSavedLocations() {
+    const section = document.getElementById('saved-locations-section');
+    if (!section) return;
+    showSavedLocations.lastFocus = document.activeElement;
+    mapModule.renderLocationsList();
+    section.classList.remove('hidden');
+    const closeBtn = document.getElementById('closeSavedLocationsBtn');
+    if (closeBtn) closeBtn.focus();
+  }
+
+  function hideSavedLocations() {
+    const section = document.getElementById('saved-locations-section');
+    if (section) section.classList.add('hidden');
+    if (showSavedLocations.lastFocus) showSavedLocations.lastFocus.focus();
+  }
+
   function toggleDrawer() {
     const drawer = document.getElementById('bottom-drawer');
     const closeBtn = document.getElementById('closeDrawerBtn');
@@ -243,6 +259,27 @@ import { t } from "../i18n.mjs";
     URL.revokeObjectURL(url);
   }
 
+  function forceRefresh() {
+    if (!navigator.onLine) {
+      showNotification(t('no_internet'), 'error');
+      return;
+    }
+    if (window.caches && caches.keys) {
+      caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => {
+        if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+          navigator.serviceWorker.getRegistrations().then(regs => {
+            regs.forEach(reg => reg.unregister());
+            window.location.reload(true);
+          });
+        } else {
+          window.location.reload(true);
+        }
+      });
+    } else {
+      window.location.reload(true);
+    }
+  }
+
   function handleFileImport(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -312,9 +349,12 @@ import { t } from "../i18n.mjs";
     const updateLocationToCurrentBtn = document.getElementById('updateLocationToCurrentBtn');
     const editLocationLatDrawer = document.getElementById('editLocationLatDrawer');
     const editLocationLngDrawer = document.getElementById('editLocationLngDrawer');
-    const importXmlBtnTrigger = document.getElementById('importXmlBtnTrigger');
-    const importXmlInput = document.getElementById('importXmlInput');
-    const locationsListUL = document.getElementById('locationsList');
+   const importXmlBtnTrigger = document.getElementById('importXmlBtnTrigger');
+   const importXmlInput = document.getElementById('importXmlInput');
+   const locationsListUL = document.getElementById('locationsList');
+    const viewSavedLocationsBtn = document.getElementById('viewSavedLocationsBtn');
+    const forceRefreshBtn = document.getElementById('forceRefreshBtn');
+    const closeSavedLocationsBtn = document.getElementById('closeSavedLocationsBtn');
 
     if (saveLocationBtn) saveLocationBtn.addEventListener('click', addOrUpdateLocation);
     if (cancelFormBtn) cancelFormBtn.addEventListener('click', hideAddForm);
@@ -336,6 +376,17 @@ import { t } from "../i18n.mjs";
       });
       importXmlInput.addEventListener('change', handleFileImport);
     }
+
+    if (viewSavedLocationsBtn) viewSavedLocationsBtn.addEventListener('click', () => {
+      closeDrawer();
+      showSavedLocations();
+    });
+    if (closeSavedLocationsBtn) closeSavedLocationsBtn.addEventListener('click', hideSavedLocations);
+
+    if (forceRefreshBtn) forceRefreshBtn.addEventListener('click', () => {
+      closeDrawer();
+      forceRefresh();
+    });
 
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') closeDrawer();
@@ -378,9 +429,12 @@ import { t } from "../i18n.mjs";
     hideAddForm,
     showEditForm,
     hideEditForm,
+    showSavedLocations,
+    hideSavedLocations,
     toggleDrawer,
     closeDrawer,
-    updateMarkerPosition: mapModule.updateMarkerPosition
+    updateMarkerPosition: mapModule.updateMarkerPosition,
+    forceRefresh
   };
 
 export default { init, testApi };

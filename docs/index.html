@@ -30,12 +30,8 @@
             <button id="exportXmlBtn" data-i18n="export_xml">Export as XML</button>
             <button id="importXmlBtnTrigger" data-i18n="import_xml">Import XML</button>
             <input type="file" id="importXmlInput" accept=".xml" style="display: none;">
-            
-            <section id="locations-list-section-drawer">
-                <h4 data-i18n="saved_locations">Saved Locations</h4>
-                <ul id="locationsList"></ul>
-                <div id="no-locations-message" class="hidden" data-i18n="no_locations">No locations saved yet.</div>
-            </section>
+            <button id="viewSavedLocationsBtn" data-i18n="saved_locations">Saved Locations</button>
+            <button id="forceRefreshBtn" data-i18n="force_refresh">Force Refresh</button>
         </div>
 
         <!-- Edit Form Section within Drawer (hidden by default) -->
@@ -87,6 +83,18 @@
             <div class="form-buttons-container">
                 <button type="button" id="saveLocationBtn" class="btn btn-primary" data-i18n="save_location">Save Location</button>
                 <button type="button" id="cancelFormBtn" class="btn btn-secondary" data-i18n="cancel">Cancel</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Saved Locations Modal -->
+    <section id="saved-locations-section" class="hidden">
+        <div class="form-content">
+            <h2 data-i18n="saved_locations">Saved Locations</h2>
+            <ul id="locationsList"></ul>
+            <div id="no-locations-message" class="hidden" data-i18n="no_locations"></div>
+            <div class="form-buttons-container">
+                <button type="button" id="closeSavedLocationsBtn" class="btn btn-secondary" data-i18n="cancel">Cancel</button>
             </div>
         </div>
     </section>

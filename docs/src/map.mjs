@@ -74,30 +74,36 @@ export function createLabelIcon(labelText, locId) {
 export function renderLocationsList() {
   const list = document.getElementById('locationsList');
   const message = document.getElementById('no-locations-message');
-  if (!list || !message) return;
+  const hasDom = list && message;
   let prevCenter = null;
   let prevZoom = null;
   if (appState.map) {
     prevCenter = appState.map.getCenter();
     prevZoom = appState.map.getZoom();
   }
-  list.innerHTML = '';
+  if (hasDom) list.innerHTML = '';
   if (appState.markersLayer) appState.markersLayer.clearLayers();
   appState.markers = {};
   if (appState.locations.length === 0) {
-    message.classList.remove('hidden');
-    list.classList.add('hidden');
+    if (hasDom) {
+      message.classList.remove('hidden');
+      list.classList.add('hidden');
+    }
     if (appState.map) appState.map.setView([20, 0], 2);
     return;
   }
-  message.classList.add('hidden');
-  list.classList.remove('hidden');
+  if (hasDom) {
+    message.classList.add('hidden');
+    list.classList.remove('hidden');
+  }
   const bounds = [];
   appState.locations.forEach(loc => {
-    const li = document.createElement('li');
-    li.setAttribute('data-id', loc.id);
-    li.textContent = loc.label || 'Unnamed';
-    list.appendChild(li);
+    if (hasDom) {
+      const li = document.createElement('li');
+      li.setAttribute('data-id', loc.id);
+      li.textContent = loc.label || 'Unnamed';
+      list.appendChild(li);
+    }
     if (appState.map && appState.markersLayer) {
       const marker = L.marker([loc.lat, loc.lng], {
         icon: createLabelIcon(loc.label, loc.id),

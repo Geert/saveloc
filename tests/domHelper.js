@@ -52,7 +52,11 @@ module.exports = async function loadDom() {
   dom.window.L = {
     map: () => {
       const map = {
-        setView: () => map,
+        center: { lat: 0, lng: 0 },
+        zoom: 0,
+        setView: (center = [0,0], zoom = 0) => { map.center = { lat: center[0], lng: center[1] }; map.zoom = zoom; return map; },
+        getCenter: () => map.center,
+        getZoom: () => map.zoom,
         on: () => map,
         addLayer: () => map,
         remove: () => {},

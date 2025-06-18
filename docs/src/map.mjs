@@ -75,6 +75,12 @@ export function renderLocationsList() {
   const list = document.getElementById('locationsList');
   const message = document.getElementById('no-locations-message');
   if (!list || !message) return;
+  let prevCenter = null;
+  let prevZoom = null;
+  if (appState.map) {
+    prevCenter = appState.map.getCenter();
+    prevZoom = appState.map.getZoom();
+  }
   list.innerHTML = '';
   if (appState.markersLayer) appState.markersLayer.clearLayers();
   appState.markers = {};
@@ -106,14 +112,22 @@ export function renderLocationsList() {
           appState.locations[idx].lat = m.lat;
           appState.locations[idx].lng = m.lng;
           saveLocations();
-          renderLocationsList();
         }
       });
       appState.markers[loc.id] = marker;
       bounds.push([loc.lat, loc.lng]);
     }
   });
-  if (appState.map && bounds.length) appState.map.fitBounds(bounds, { padding: [50, 50] });
+  if (appState.map && bounds.length) {
+    if (!renderLocationsList._hasRendered) {
+      appState.map.fitBounds(bounds, { padding: [50, 50] });
+      renderLocationsList._hasRendered = true;
+    } else {
+      const center = prevCenter || appState.map.getCenter();
+      const zoom = prevZoom || appState.map.getZoom();
+      appState.map.setView(center, zoom);
+    }
+  }
 }
 
 export function setMarkerClickHandler(fn) {

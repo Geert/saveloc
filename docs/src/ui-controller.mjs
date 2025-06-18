@@ -203,6 +203,7 @@ import { requestLocationPermission } from "./permission.mjs";
   }
 
   function exportToXml() {
+    closeDrawer();
     if (appState.locations.length === 0) {
       showNotification('No locations to export.', 'info');
       return;
@@ -284,6 +285,7 @@ import { requestLocationPermission } from "./permission.mjs";
         showNotification('An error occurred while processing the XML file.', 'error');
       }
       event.target.value = null;
+      closeDrawer();
     };
     reader.onerror = function() {
       showNotification('Error reading file.', 'error');
@@ -324,7 +326,10 @@ import { requestLocationPermission } from "./permission.mjs";
     if (editLocationLatDrawer) editLocationLatDrawer.addEventListener('input', handleCoordinateInput);
     if (editLocationLngDrawer) editLocationLngDrawer.addEventListener('input', handleCoordinateInput);
     if (importXmlBtnTrigger && importXmlInput) {
-      importXmlBtnTrigger.addEventListener('click', () => importXmlInput.click());
+      importXmlBtnTrigger.addEventListener('click', () => {
+        closeDrawer();
+        importXmlInput.click();
+      });
       importXmlInput.addEventListener('change', handleFileImport);
     }
 

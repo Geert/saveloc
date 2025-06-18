@@ -1,4 +1,5 @@
 import { showNotification } from './ui.mjs';
+import { t } from '../i18n.mjs';
 
 export async function requestLocationPermission() {
   if (!navigator.permissions || !navigator.permissions.query) {
@@ -11,11 +12,11 @@ export async function requestLocationPermission() {
       return new Promise(resolve => {
         navigator.geolocation.getCurrentPosition(
           () => resolve(true),
-          () => { showNotification('Location permission denied.', 'error'); resolve(false); }
+          () => { showNotification(t('location_permission_denied'), 'error'); resolve(false); }
         );
       });
     }
-    showNotification('Location permission denied. Enable it in your browser settings.', 'error');
+    showNotification(t('location_permission_denied_enable'), 'error');
     return false;
   } catch (e) {
     return true;

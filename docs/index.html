@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>SaveLoc - Bookmark Locations</title>
+    <title data-i18n="title">SaveLoc - Bookmark Locations</title>
     <link rel="stylesheet" href="vendor/leaflet.css">
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
@@ -12,56 +12,56 @@
 </head>
 <body>
     <div id="top-bar">
-        <button id="addLocationBtn" class="btn btn-primary" title="Add new location (uses current GPS)">Add Location</button>
-        <button id="editModeBtn" aria-label="Enter Edit Mode">✎ Edit</button>
+        <button id="addLocationBtn" class="btn btn-primary" title="Add new location (uses current GPS)" data-i18n="add_location" data-i18n-title="add_location_title">Add Location</button>
+        <button id="editModeBtn" aria-label="Enter Edit Mode" data-i18n="edit_button" data-i18n-aria-label="enter_edit_mode">✎ Edit</button>
         <div class="spacer"></div>
-        <button id="hamburgerBtn" aria-label="Menu">☰</button>
+        <button id="hamburgerBtn" aria-label="Menu" data-i18n-aria-label="menu">☰</button>
     </div>
 
     <div id="map"></div>
 
     <div id="bottom-drawer">
         <div class="drawer-header">
-            <h3>Menu</h3>
-            <button id="closeDrawerBtn" aria-label="Close menu">×</button>
+            <h3 data-i18n="menu">Menu</h3>
+            <button id="closeDrawerBtn" aria-label="Close menu" data-i18n-aria-label="close_menu">×</button>
         </div>
         <div class="drawer-content" id="drawer-main-content">
-            <button id="clearListBtn">Clear All Locations</button>
-            <button id="exportXmlBtn">Export as XML</button>
-            <button id="importXmlBtnTrigger">Import XML</button>
+            <button id="clearListBtn" data-i18n="clear_all">Clear All Locations</button>
+            <button id="exportXmlBtn" data-i18n="export_xml">Export as XML</button>
+            <button id="importXmlBtnTrigger" data-i18n="import_xml">Import XML</button>
             <input type="file" id="importXmlInput" accept=".xml" style="display: none;">
             
             <section id="locations-list-section-drawer">
-                <h4>Saved Locations</h4>
+                <h4 data-i18n="saved_locations">Saved Locations</h4>
                 <ul id="locationsList"></ul>
-                <div id="no-locations-message" class="hidden">No locations saved yet.</div>
+                <div id="no-locations-message" class="hidden" data-i18n="no_locations">No locations saved yet.</div>
             </section>
         </div>
 
         <!-- Edit Form Section within Drawer (hidden by default) -->
         <div id="edit-form-drawer-section" class="hidden">
             <div class="drawer-header">
-                <h3 id="edit-form-drawer-title">Edit Location</h3>
+                <h3 id="edit-form-drawer-title" data-i18n="edit_location">Edit Location</h3>
                 <!-- No close button here, use form's Cancel button -->
             </div>
             <div class="drawer-content">
                 <input type="hidden" id="editLocationIdDrawer">
                 <div>
-                    <label for="editLocationLabelDrawer">Label:</label>
-                    <input type="text" id="editLocationLabelDrawer" placeholder="E.g., Home, Work">
+                    <label for="editLocationLabelDrawer" data-i18n="label">Label:</label>
+                    <input type="text" id="editLocationLabelDrawer" data-i18n-placeholder="label_placeholder" placeholder="E.g., Home, Work">
                 </div>
                 <div>
-                <label for="editLocationLatDrawer">Latitude:</label>
+                <label for="editLocationLatDrawer" data-i18n="latitude">Latitude:</label>
                 <input type="number" id="editLocationLatDrawer" step="0.000001">
                 </div>
                 <div>
-                <label for="editLocationLngDrawer">Longitude:</label>
+                <label for="editLocationLngDrawer" data-i18n="longitude">Longitude:</label>
                 <input type="number" id="editLocationLngDrawer" step="0.000001">
                 </div>
                 <div class="form-buttons-container">
-                    <button type="button" id="updateLocationToCurrentBtn" class="btn btn-update">🎯 Update to Current</button>
-                    <button type="button" id="saveLocationDrawerBtn" class="btn btn-primary">Save Changes</button>
-                    <button type="button" id="cancelEditDrawerBtn" class="btn btn-secondary">Cancel</button>
+                    <button type="button" id="updateLocationToCurrentBtn" class="btn btn-update" data-i18n="update_to_current">🎯 Update to Current</button>
+                    <button type="button" id="saveLocationDrawerBtn" class="btn btn-primary" data-i18n="save_changes">Save Changes</button>
+                    <button type="button" id="cancelEditDrawerBtn" class="btn btn-secondary" data-i18n="cancel">Cancel</button>
                 </div>
             </div>
         </div>
@@ -70,23 +70,23 @@
     <!-- Location Form (modal) -->
     <section id="location-form-section" class="hidden">
         <div class="form-content">
-            <h2><span id="form-title">Add New</span> Location</h2>
+            <h2 id="add-form-title" data-i18n="add_new_location">Add New Location</h2>
             <input type="hidden" id="locationId">
             <div>
-                <label for="locationLabel">Label:</label>
-                <input type="text" id="locationLabel" placeholder="E.g., Home, Work, Park Entrance">
+                <label for="locationLabel" data-i18n="label">Label:</label>
+                <input type="text" id="locationLabel" data-i18n-placeholder="location_placeholder" placeholder="E.g., Home, Work, Park Entrance">
             </div>
             <div>
-                <label for="locationLat">Latitude:</label>
+                <label for="locationLat" data-i18n="latitude">Latitude:</label>
                 <input type="number" id="locationLat" step="0.000001">
             </div>
             <div>
-                <label for="locationLng">Longitude:</label>
+                <label for="locationLng" data-i18n="longitude">Longitude:</label>
                 <input type="number" id="locationLng" step="0.000001">
             </div>
             <div class="form-buttons-container">
-                <button type="button" id="saveLocationBtn" class="btn btn-primary">Save Location</button>
-                <button type="button" id="cancelFormBtn" class="btn btn-secondary">Cancel</button>
+                <button type="button" id="saveLocationBtn" class="btn btn-primary" data-i18n="save_location">Save Location</button>
+                <button type="button" id="cancelFormBtn" class="btn btn-secondary" data-i18n="cancel">Cancel</button>
             </div>
         </div>
     </section>

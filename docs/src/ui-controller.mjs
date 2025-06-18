@@ -4,6 +4,7 @@ import * as storage from "./storage.mjs";
 import { showNotification } from "./ui.mjs";
 import * as mapModule from "./map.mjs";
 import { requestLocationPermission } from "./permission.mjs";
+import { t } from "../i18n.mjs";
 
   function showAddForm(data = {}) {
     const section = document.getElementById('location-form-section');
@@ -89,7 +90,9 @@ import { requestLocationPermission } from "./permission.mjs";
     appState.isInEditMode = !appState.isInEditMode;
     const editModeBtn = document.getElementById('editModeBtn');
     if (editModeBtn) {
-      editModeBtn.textContent = appState.isInEditMode ? 'Exit Edit Mode' : 'Enter Edit Mode';
+      const key = appState.isInEditMode ? 'exit_edit_mode' : 'enter_edit_mode';
+      editModeBtn.textContent = t(key);
+      editModeBtn.setAttribute('aria-label', t(key));
     }
     mapModule.renderLocationsList();
   }
@@ -98,12 +101,12 @@ import { requestLocationPermission } from "./permission.mjs";
     const addBtn = document.getElementById('addLocationBtn');
     if (!navigator.geolocation) {
       const nextLabel = (appState.locations.length + 1).toString();
-      showNotification('Geolocation is not supported by your browser', 'error');
+      showNotification(t('geolocation_unsupported'), 'error');
       showAddForm({ label: nextLabel });
       return;
     }
     addBtn.disabled = true;
-    addBtn.textContent = 'Fetching...';
+    addBtn.textContent = t('fetching');
     navigator.geolocation.getCurrentPosition(
       pos => {
         const nextLabel = (appState.locations.length + 1).toString();
@@ -113,14 +116,14 @@ import { requestLocationPermission } from "./permission.mjs";
           label: nextLabel
         });
         addBtn.disabled = false;
-        addBtn.textContent = 'Add Location';
+        addBtn.textContent = t('add_location');
       },
       err => {
-        showNotification(`Error getting current location: ${err.message}`, 'error');
+        showNotification(t('error_getting_current', { error: err.message }), 'error');
         const nextLabel = (appState.locations.length + 1).toString();
         showAddForm({ label: nextLabel });
         addBtn.disabled = false;
-        addBtn.textContent = 'Add Location';
+        addBtn.textContent = t('add_location');
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
@@ -174,7 +177,7 @@ import { requestLocationPermission } from "./permission.mjs";
     const lat = parseFloat(latInput.value);
     const lng = parseFloat(lngInput.value);
     if (!label || isNaN(lat) || isNaN(lng)) {
-      showNotification('Invalid input', 'error');
+      showNotification(t('invalid_input'), 'error');
       return;
     }
     const newLocation = {
@@ -193,10 +196,10 @@ import { requestLocationPermission } from "./permission.mjs";
   function clearAllLocations() {
     closeDrawer();
     if (appState.locations.length === 0) {
-      showNotification('There are no locations to clear.', 'info');
+      showNotification(t('no_locations_to_clear'), 'info');
       return;
     }
-    if (confirm('Are you sure you want to delete ALL locations? This cannot be undone.')) {
+    if (confirm(t('confirm_delete_all'))) {
       appState.locations = [];
       storage.saveLocations();
       mapModule.renderLocationsList();
@@ -206,7 +209,7 @@ import { requestLocationPermission } from "./permission.mjs";
   function exportToXml() {
     closeDrawer();
     if (appState.locations.length === 0) {
-      showNotification('No locations to export.', 'info');
+      showNotification(t('no_locations_to_export'), 'info');
       return;
     }
     const xmlDoc = document.implementation.createDocument(null, 'root', null);
@@ -251,12 +254,12 @@ import { requestLocationPermission } from "./permission.mjs";
         const xmlDoc = parser.parseFromString(xmlString, 'application/xml');
         const errorNode = xmlDoc.querySelector('parsererror');
         if (errorNode) {
-          showNotification('Error parsing XML file. Please check the file format.', 'error');
+          showNotification(t('error_parsing_xml'), 'error');
           return;
         }
         const plaatsElements = xmlDoc.getElementsByTagName('plaatsen');
         if (plaatsElements.length === 0) {
-          showNotification('No locations found in the XML file.', 'info');
+          showNotification(t('no_locations_in_file'), 'info');
           return;
         }
         appState.locations = [];
@@ -280,16 +283,16 @@ import { requestLocationPermission } from "./permission.mjs";
         if (importedCount > 0) {
           storage.saveLocations();
           mapModule.renderLocationsList();
-          showNotification(`${importedCount} location(s) imported successfully.`, 'success');
+          showNotification(t('locations_imported', { count: importedCount }), 'success');
         }
       } catch (error) {
-        showNotification('An error occurred while processing the XML file.', 'error');
+        showNotification(t('an_error_occurred'), 'error');
       }
       event.target.value = null;
       closeDrawer();
     };
     reader.onerror = function() {
-      showNotification('Error reading file.', 'error');
+      showNotification(t('error_reading_file'), 'error');
       event.target.value = null;
     };
     reader.readAsText(file);

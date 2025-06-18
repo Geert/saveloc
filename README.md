@@ -43,6 +43,10 @@ Use the menu to export all locations to an XML file or import from an existing f
 
 The app registers a service worker that caches the main page, scripts, styles and map tiles. Once loaded, you can revisit the page without a network connection and previously viewed map areas will remain available.
 
+### Updating the cache
+
+To force browsers to download fresh assets, bump the `version` field in `docs/manifest.json` whenever you deploy changes. The service worker reads this value and creates a new cache for each version.
+
 ## Accessibility
 
 The application supports keyboard navigation. When forms or the drawer open, focus moves to the first input so screen reader users know where to start. You can reposition markers without using a mouse by editing the latitude and longitude fields in the edit drawer; changes update the marker on the map immediately.

@@ -5,6 +5,35 @@ import { saveLocations } from './storage.mjs';
 const PREFERRED_MAP_LAYER_KEY = 'preferredMapLayerName';
 let markerClickHandler = null;
 
+const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 20
+});
+
+const cartoPositron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  subdomains: 'abcd',
+  maxZoom: 20
+});
+
+const cartoDarkMatter = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  subdomains: 'abcd',
+  maxZoom: 20
+});
+
+const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  attribution: 'Tiles \xA9 Esri',
+  maxZoom: 20
+});
+
+const baseLayers = {
+  'Satellite': esriSatellite,
+  'OpenStreetMap': osmLayer,
+  'Carto Light': cartoPositron,
+  'Carto Dark': cartoDarkMatter
+};
+
+let currentBaseLayer = null;
+let currentBaseLayerName = null;
+
 export function loadMap() {
   return new Promise((resolve, reject) => {
     try {
@@ -19,45 +48,14 @@ export function loadMap() {
 export function initMap() {
   appState.map = L.map('map').setView([51.505, -0.09], 2);
 
-  const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 20
-  });
-
-  const cartoPositron = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    subdomains: 'abcd',
-    maxZoom: 20
-  });
-
-  const cartoDarkMatter = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    subdomains: 'abcd',
-    maxZoom: 20
-  });
-
-  const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Tiles \xA9 Esri',
-    maxZoom: 20
-  });
-
-  const baseMaps = {
-    'Satellite': esriSatellite,
-    'OpenStreetMap': osmLayer,
-    'Carto Light': cartoPositron,
-    'Carto Dark': cartoDarkMatter
-  };
-
   const preferredLayerName = localStorage.getItem(PREFERRED_MAP_LAYER_KEY);
-  let defaultLayer = osmLayer;
-  if (preferredLayerName && baseMaps[preferredLayerName]) {
-    defaultLayer = baseMaps[preferredLayerName];
-  }
-  defaultLayer.addTo(appState.map);
+  currentBaseLayerName = preferredLayerName && baseLayers[preferredLayerName]
+    ? preferredLayerName
+    : 'OpenStreetMap';
+  currentBaseLayer = baseLayers[currentBaseLayerName];
+  currentBaseLayer.addTo(appState.map);
 
   appState.markersLayer = L.layerGroup().addTo(appState.map);
-  const overlayMaps = { 'Locations': appState.markersLayer };
-  L.control.layers(baseMaps, overlayMaps).addTo(appState.map);
-  appState.map.on('baselayerchange', e => {
-    localStorage.setItem(PREFERRED_MAP_LAYER_KEY, e.name);
-  });
 }
 
 export function createLabelIcon(labelText, locId) {
@@ -145,5 +143,22 @@ export function updateMarkerPosition(id, lat, lng) {
   if (marker) {
     marker.setLatLng({ lat, lng });
   }
+}
+
+export function getBaseLayerNames() {
+  return Object.keys(baseLayers);
+}
+
+export function getCurrentBaseLayerName() {
+  return currentBaseLayerName;
+}
+
+export function setBaseLayer(name) {
+  if (!baseLayers[name] || name === currentBaseLayerName || !appState.map) return;
+  if (currentBaseLayer) appState.map.removeLayer(currentBaseLayer);
+  currentBaseLayer = baseLayers[name];
+  currentBaseLayer.addTo(appState.map);
+  currentBaseLayerName = name;
+  localStorage.setItem(PREFERRED_MAP_LAYER_KEY, name);
 }
 

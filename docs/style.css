@@ -319,6 +319,21 @@ html, body {
     background-color: #5a6268; /* Darker grey */
 }
 
+/* Inline select for map layer choice */
+.inline-select-label {
+    display: block;
+    margin: 10px 5px 5px;
+    font-weight: bold;
+}
+
+.inline-select {
+    display: block;
+    width: calc(100% - 10px);
+    margin: 0 5px 10px;
+    padding: 10px;
+    font-size: 1rem;
+}
+
 /* Optional: if update button needs specific style different from primary */
 .btn-update {
     background-color: #007bff; /* Blue */

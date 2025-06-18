@@ -78,7 +78,7 @@ module.exports = async function loadDom() {
   };
   dom.window.L.__markers = markers;
 
-  const modules = ['src/state.js', 'src/ui.js', 'src/storage.js', 'src/permission.js', 'src/map.js', 'main.js'];
+  const modules = ['src/state.js', 'src/ui.js', 'src/storage.js', 'src/permission.js', 'src/map.js', 'src/data-layer.js', 'src/ui-controller.js', 'main.js'];
   modules.forEach(file => {
     const content = fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
     dom.window.eval(content);

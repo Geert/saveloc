@@ -31,3 +31,15 @@ test('drawer closes with button and Escape key', () => {
   document.dispatchEvent(esc);
   expect(drawer.classList.contains('visible')).toBe(false);
 });
+
+test('clicking outside drawer closes it', () => {
+  const hamburger = document.getElementById('hamburgerBtn');
+  const drawer = document.getElementById('bottom-drawer');
+
+  hamburger.click();
+  expect(drawer.classList.contains('visible')).toBe(true);
+
+  document.body.click();
+
+  expect(drawer.classList.contains('visible')).toBe(false);
+});

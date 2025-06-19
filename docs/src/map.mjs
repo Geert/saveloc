@@ -62,7 +62,7 @@ export function createLabelIcon(labelText, locId) {
   const displayLabel = labelText && labelText.trim() !== '' ? labelText.substring(0, 15) : '📍';
   return L.divIcon({
     html: `<div class="custom-label-marker-text">${displayLabel.replace(/[<>&'"\\/]/g, c => '&#' + c.charCodeAt(0) + ';')}</div>`,
-    className: 'custom-label-marker location-marker-' + locId,
+    className: 'custom-label-marker location-marker-' + locId + (appState.isInEditMode ? ' wiggle-marker' : ''),
     iconSize: null,
     iconAnchor: [20, 10],
     popupAnchor: [0, -10]

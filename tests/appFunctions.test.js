@@ -71,3 +71,22 @@ test('createLabelIcon sanitizes label text', () => {
   expect(icon.html).toContain('Hi');
   expect(icon.html).not.toContain('<b>');
 });
+
+test('createLabelIcon adds wiggle class in edit mode', () => {
+  window.L.divIcon = jest.fn(opts => opts);
+  window.appState.isInEditMode = true;
+  const icon = saveLocTest.createLabelIcon('A', '2');
+  expect(icon.html).toContain('wiggle-marker');
+  expect(icon.className).not.toContain('wiggle-marker');
+  window.appState.isInEditMode = false;
+});
+
+test('applyRoadOrientation sets rotation transform', async () => {
+  const inner = document.createElement('div');
+  inner.className = 'custom-label-marker-inner';
+  const iconEl = document.createElement('div');
+  iconEl.appendChild(inner);
+  const marker = { getLatLng: () => ({ lat: 0, lng: 0 }), _icon: iconEl };
+  await saveLocTest.applyRoadOrientation(marker);
+  expect(inner.style.getPropertyValue('--rotation')).toContain('deg');
+});

@@ -34,6 +34,23 @@ const baseLayers = {
 let currentBaseLayer = null;
 let currentBaseLayerName = null;
 
+// Placeholder orientation logic. In a full implementation this would fetch the
+// nearest road and calculate its bearing so markers can rotate parallel to it.
+export async function getRoadOrientation(lat, lng) {
+  // Network access to road data is blocked in the current environment.
+  // Returning 0 degrees until road orientation can be determined.
+  return 0;
+}
+
+export async function applyRoadOrientation(marker) {
+  if (!marker._icon) return;
+  const inner = marker._icon.querySelector('.custom-label-marker-inner');
+  if (!inner) return;
+  const { lat, lng } = marker.getLatLng();
+  const angle = await getRoadOrientation(lat, lng);
+  inner.style.setProperty('--rotation', `${angle}deg`);
+}
+
 export function loadMap() {
   return new Promise((resolve, reject) => {
     try {
@@ -59,9 +76,13 @@ export function initMap() {
 }
 
 export function createLabelIcon(labelText, locId) {
-  const displayLabel = labelText && labelText.trim() !== '' ? labelText.substring(0, 15) : '📍';
+  const displayLabel = labelText && labelText.trim() !== ''
+    ? labelText.substring(0, 15)
+    : '📍';
+  const wiggleClass = appState.isInEditMode ? ' wiggle-marker' : '';
+  const safe = displayLabel.replace(/[<>&'"\\/]/g, c => '&#' + c.charCodeAt(0) + ';');
   return L.divIcon({
-    html: `<div class="custom-label-marker-text">${displayLabel.replace(/[<>&'"\\/]/g, c => '&#' + c.charCodeAt(0) + ';')}</div>`,
+    html: `<div class="custom-label-marker-inner${wiggleClass}"><div class="custom-label-marker-text">${safe}</div></div>`,
     className: 'custom-label-marker location-marker-' + locId,
     iconSize: null,
     iconAnchor: [20, 10],
@@ -107,6 +128,7 @@ export function renderLocationsList() {
         icon: createLabelIcon(loc.label, loc.id),
         draggable: appState.isInEditMode
       }).addTo(appState.markersLayer);
+      applyRoadOrientation(marker);
       marker.locationId = loc.id;
       if (markerClickHandler) marker.on('contextmenu', () => markerClickHandler(loc));
       marker.on('dragend', evt => {
@@ -117,6 +139,7 @@ export function renderLocationsList() {
           appState.locations[idx].lng = m.lng;
           saveLocations();
         }
+        applyRoadOrientation(evt.target);
       });
       appState.markers[loc.id] = marker;
       bounds.push([loc.lat, loc.lng]);

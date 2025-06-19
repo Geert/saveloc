@@ -34,6 +34,22 @@ const baseLayers = {
 let currentBaseLayer = null;
 let currentBaseLayerName = null;
 
+// Placeholder orientation logic. In a full implementation this would fetch the
+// nearest road and calculate its bearing so markers can rotate parallel to it.
+export async function getRoadOrientation(lat, lng) {
+  // Network access to road data is blocked in the current environment.
+  // Returning 0 degrees until road orientation can be determined.
+  return 0;
+}
+
+export async function applyRoadOrientation(marker) {
+  const { lat, lng } = marker.getLatLng();
+  const angle = await getRoadOrientation(lat, lng);
+  if (marker._icon) {
+    marker._icon.style.transform = `rotate(${angle}deg)`;
+  }
+}
+
 export function loadMap() {
   return new Promise((resolve, reject) => {
     try {
@@ -108,6 +124,7 @@ export function renderLocationsList() {
         icon: createLabelIcon(loc.label, loc.id),
         draggable: appState.isInEditMode
       }).addTo(appState.markersLayer);
+      applyRoadOrientation(marker);
       marker.locationId = loc.id;
       if (markerClickHandler) marker.on('contextmenu', () => markerClickHandler(loc));
       marker.on('dragend', evt => {
@@ -118,6 +135,7 @@ export function renderLocationsList() {
           appState.locations[idx].lng = m.lng;
           saveLocations();
         }
+        applyRoadOrientation(evt.target);
       });
       appState.markers[loc.id] = marker;
       bounds.push([loc.lat, loc.lng]);

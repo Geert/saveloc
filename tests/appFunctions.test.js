@@ -80,3 +80,9 @@ test('createLabelIcon adds wiggle class in edit mode', () => {
   expect(icon.className).not.toContain('wiggle-marker');
   window.appState.isInEditMode = false;
 });
+
+test('applyRoadOrientation sets rotation transform', async () => {
+  const marker = { getLatLng: () => ({ lat: 0, lng: 0 }), _icon: { style: { transform: '' } } };
+  await saveLocTest.applyRoadOrientation(marker);
+  expect(marker._icon.style.transform).toContain('rotate(');
+});

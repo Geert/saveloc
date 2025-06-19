@@ -373,11 +373,12 @@ html, body {
 .custom-label-marker {
     background-color: white;
     border: 1px solid #007bff;
-    border-radius: 20px;
+    border-radius: 0;
     padding: 3px 8px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     text-align: center;
     white-space: nowrap;
+    transform-origin: center;
 }
 
 .custom-label-marker-text {

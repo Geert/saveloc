@@ -433,6 +433,8 @@ import { t } from "../i18n.mjs";
     setBaseLayer: mapModule.setBaseLayer,
     getBaseLayerNames: mapModule.getBaseLayerNames,
     getCurrentBaseLayerName: mapModule.getCurrentBaseLayerName,
+    applyRoadOrientation: mapModule.applyRoadOrientation,
+    getRoadOrientation: mapModule.getRoadOrientation,
     forceRefresh
   };
 

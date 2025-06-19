@@ -60,21 +60,6 @@ import { t } from "../i18n.mjs";
     showEditForm.currentId = null;
   }
 
-  function showSavedLocations() {
-    const section = document.getElementById('saved-locations-section');
-    if (!section) return;
-    showSavedLocations.lastFocus = document.activeElement;
-    mapModule.renderLocationsList();
-    section.classList.remove('hidden');
-    const closeBtn = document.getElementById('closeSavedLocationsBtn');
-    if (closeBtn) closeBtn.focus();
-  }
-
-  function hideSavedLocations() {
-    const section = document.getElementById('saved-locations-section');
-    if (section) section.classList.add('hidden');
-    if (showSavedLocations.lastFocus) showSavedLocations.lastFocus.focus();
-  }
 
   function toggleDrawer() {
     const drawer = document.getElementById('bottom-drawer');
@@ -365,10 +350,7 @@ import { t } from "../i18n.mjs";
     const editLocationLngDrawer = document.getElementById('editLocationLngDrawer');
    const importXmlBtnTrigger = document.getElementById('importXmlBtnTrigger');
    const importXmlInput = document.getElementById('importXmlInput');
-   const locationsListUL = document.getElementById('locationsList');
-    const viewSavedLocationsBtn = document.getElementById('viewSavedLocationsBtn');
    const forceRefreshBtn = document.getElementById('forceRefreshBtn');
-   const closeSavedLocationsBtn = document.getElementById('closeSavedLocationsBtn');
    const mapLayerSelect = document.getElementById('mapLayerSelect');
 
     if (saveLocationBtn) saveLocationBtn.addEventListener('click', addOrUpdateLocation);
@@ -392,11 +374,7 @@ import { t } from "../i18n.mjs";
       importXmlInput.addEventListener('change', handleFileImport);
     }
 
-    if (viewSavedLocationsBtn) viewSavedLocationsBtn.addEventListener('click', () => {
-      closeDrawer();
-      showSavedLocations();
-    });
-    if (closeSavedLocationsBtn) closeSavedLocationsBtn.addEventListener('click', hideSavedLocations);
+
 
    if (forceRefreshBtn) forceRefreshBtn.addEventListener('click', () => {
      closeDrawer();
@@ -419,14 +397,6 @@ import { t } from "../i18n.mjs";
       }
     });
 
-    if (locationsListUL) {
-      locationsListUL.addEventListener('click', e => {
-        const li = e.target.closest('li[data-id]');
-        if (!li) return;
-        const loc = appState.locations.find(l => l.id === li.dataset.id);
-        if (loc) showEditForm(loc);
-      });
-    }
   }
 
   function init() {
@@ -457,8 +427,6 @@ import { t } from "../i18n.mjs";
     hideAddForm,
     showEditForm,
     hideEditForm,
-    showSavedLocations,
-    hideSavedLocations,
     toggleDrawer,
     closeDrawer,
     updateMarkerPosition: mapModule.updateMarkerPosition,

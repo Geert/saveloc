@@ -159,47 +159,9 @@ html, body {
     font-size: 1.1rem;
 }
 
-#locationsList {
-    list-style: none;
-    padding: 0;
-}
-
-#locationsList li {
-    padding: 10px;
-    border-bottom: 1px solid #eee;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.95rem;
-}
-
-#locationsList li:last-child {
-    border-bottom: none;
-}
-
-#locationsList .location-label {
-    font-weight: bold;
-}
-
-#locationsList .location-coords {
-    font-size: 0.85em;
-    color: #555;
-    margin-left: 8px;
-}
-
-#locationsList .actions button {
-    padding: 5px 10px;
-    font-size: 0.85em;
-    margin-left: 5px;
-    background-color: #6c757d;
-}
-#locationsList .actions button:hover {
-    background-color: #5a6268;
-}
 
 /* Location Form Modal Styles (remains mostly the same, but ensure z-index) */
-#location-form-section,
-#saved-locations-section {
+#location-form-section {
     position: fixed;
     top: 0;
     left: 0;
@@ -214,13 +176,11 @@ html, body {
     box-sizing: border-box;
 }
 
-#location-form-section.hidden,
-#saved-locations-section.hidden {
+#location-form-section.hidden {
     display: none !important; /* Keep using hidden class to toggle */
 }
 
-#location-form-section .form-content,
-#saved-locations-section .form-content {
+#location-form-section .form-content {
     background-color: #fff;
     padding: 25px;
     border-radius: 8px;
@@ -229,8 +189,7 @@ html, body {
     max-width: 400px;
 }
 
-#location-form-section h2,
-#saved-locations-section h2 {
+#location-form-section h2 {
     margin-top: 0;
     margin-bottom: 20px;
     color: #007bff;
@@ -238,16 +197,14 @@ html, body {
     text-align: center;
 }
 
-#location-form-section label,
-#saved-locations-section label {
+#location-form-section label {
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
     font-size: 0.9rem;
 }
 
-#location-form-section input[type="text"],
-#saved-locations-section input[type="text"] {
+#location-form-section input[type="text"] {
     width: 100%; /* Full width within form */
     padding: 10px;
     margin-bottom: 15px;
@@ -450,12 +407,10 @@ html, body {
     .drawer-header h3 {
         font-size: 1.1rem;
     }
-    #location-form-section .form-content,
-    #saved-locations-section .form-content {
+    #location-form-section .form-content {
         padding: 20px;
     }
-    #location-form-section h2,
-    #saved-locations-section h2 {
+    #location-form-section h2 {
         font-size: 1.3rem;
     }
 }

@@ -388,6 +388,7 @@ html, body {
     max-width: 100px;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: inline-block;
 }
 
 .custom-label-marker-text:empty::before {

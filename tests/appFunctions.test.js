@@ -76,6 +76,7 @@ test('createLabelIcon adds wiggle class in edit mode', () => {
   window.L.divIcon = jest.fn(opts => opts);
   window.appState.isInEditMode = true;
   const icon = saveLocTest.createLabelIcon('A', '2');
-  expect(icon.className).toContain('wiggle-marker');
+  expect(icon.html).toContain('wiggle-marker');
+  expect(icon.className).not.toContain('wiggle-marker');
   window.appState.isInEditMode = false;
 });

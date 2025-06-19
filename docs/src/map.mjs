@@ -60,9 +60,10 @@ export function initMap() {
 
 export function createLabelIcon(labelText, locId) {
   const displayLabel = labelText && labelText.trim() !== '' ? labelText.substring(0, 15) : '📍';
+  const wiggleClass = appState.isInEditMode ? ' wiggle-marker' : '';
   return L.divIcon({
-    html: `<div class="custom-label-marker-text">${displayLabel.replace(/[<>&'"\\/]/g, c => '&#' + c.charCodeAt(0) + ';')}</div>`,
-    className: 'custom-label-marker location-marker-' + locId + (appState.isInEditMode ? ' wiggle-marker' : ''),
+    html: `<div class="custom-label-marker-text${wiggleClass}">${displayLabel.replace(/[<>&'"\\/]/g, c => '&#' + c.charCodeAt(0) + ';')}</div>`,
+    className: 'custom-label-marker location-marker-' + locId,
     iconSize: null,
     iconAnchor: [20, 10],
     popupAnchor: [0, -10]

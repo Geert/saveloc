@@ -108,7 +108,7 @@ export function renderLocationsList() {
         draggable: appState.isInEditMode
       }).addTo(appState.markersLayer);
       marker.locationId = loc.id;
-      if (markerClickHandler) marker.on('click', () => markerClickHandler(loc));
+      if (markerClickHandler) marker.on('contextmenu', () => markerClickHandler(loc));
       marker.on('dragend', evt => {
         const m = evt.target.getLatLng();
         const idx = appState.locations.findIndex(l => l.id === loc.id);

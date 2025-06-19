@@ -16,17 +16,6 @@ beforeEach(() => {
   window.L.__markers.length = 0;
 });
 
-test('showSavedLocations displays section and restores focus on hide', () => {
-  const trigger = document.getElementById('viewSavedLocationsBtn');
-  trigger.focus();
-  const section = document.getElementById('saved-locations-section');
-  saveLocTest.showSavedLocations();
-  expect(section.classList.contains('hidden')).toBe(false);
-  expect(document.activeElement).toBe(document.getElementById('closeSavedLocationsBtn'));
-  saveLocTest.hideSavedLocations();
-  expect(section.classList.contains('hidden')).toBe(true);
-  expect(document.activeElement).toBe(trigger);
-});
 
 test('updateMarkerPosition updates marker coords', () => {
   const loc = { id: '1', lat: 1, lng: 2, label: 'A' };

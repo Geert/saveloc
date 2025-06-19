@@ -82,7 +82,11 @@ test('createLabelIcon adds wiggle class in edit mode', () => {
 });
 
 test('applyRoadOrientation sets rotation transform', async () => {
-  const marker = { getLatLng: () => ({ lat: 0, lng: 0 }), _icon: { style: { transform: '' } } };
+  const inner = document.createElement('div');
+  inner.className = 'custom-label-marker-inner';
+  const iconEl = document.createElement('div');
+  iconEl.appendChild(inner);
+  const marker = { getLatLng: () => ({ lat: 0, lng: 0 }), _icon: iconEl };
   await saveLocTest.applyRoadOrientation(marker);
-  expect(marker._icon.style.transform).toContain('rotate(');
+  expect(inner.style.getPropertyValue('--rotation')).toContain('deg');
 });

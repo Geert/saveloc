@@ -43,11 +43,12 @@ export async function getRoadOrientation(lat, lng) {
 }
 
 export async function applyRoadOrientation(marker) {
+  if (!marker._icon) return;
+  const inner = marker._icon.querySelector('.custom-label-marker-inner');
+  if (!inner) return;
   const { lat, lng } = marker.getLatLng();
   const angle = await getRoadOrientation(lat, lng);
-  if (marker._icon) {
-    marker._icon.style.transform = `rotate(${angle}deg)`;
-  }
+  inner.style.setProperty('--rotation', `${angle}deg`);
 }
 
 export function loadMap() {
@@ -75,10 +76,13 @@ export function initMap() {
 }
 
 export function createLabelIcon(labelText, locId) {
-  const displayLabel = labelText && labelText.trim() !== '' ? labelText.substring(0, 15) : '📍';
+  const displayLabel = labelText && labelText.trim() !== ''
+    ? labelText.substring(0, 15)
+    : '📍';
   const wiggleClass = appState.isInEditMode ? ' wiggle-marker' : '';
+  const safe = displayLabel.replace(/[<>&'"\\/]/g, c => '&#' + c.charCodeAt(0) + ';');
   return L.divIcon({
-    html: `<div class="custom-label-marker-text${wiggleClass}">${displayLabel.replace(/[<>&'"\\/]/g, c => '&#' + c.charCodeAt(0) + ';')}</div>`,
+    html: `<div class="custom-label-marker-inner${wiggleClass}"><div class="custom-label-marker-text">${safe}</div></div>`,
     className: 'custom-label-marker location-marker-' + locId,
     iconSize: null,
     iconAnchor: [20, 10],

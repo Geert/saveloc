@@ -34,17 +34,33 @@ const baseLayers = {
 let currentBaseLayer = null;
 let currentBaseLayerName = null;
 
+// Cache road orientations so repeated calls don't hit the network repeatedly.
+const orientationCache = new Map();
+// Flag to avoid further network requests after one fails.
+let orientationFetchDisabled = false;
+
 // Fetch the angle of the nearest road around the given point using the
 // Overpass API. 0 degrees is returned if no road data is available.
 export async function getRoadOrientation(lat, lng) {
+  // round coordinates to roughly 1 meter precision
+  const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+  if (orientationCache.has(key)) {
+    return orientationCache.get(key);
+  }
+  if (orientationFetchDisabled) {
+    return 0;
+  }
   const query = `[out:json];way(around:35,${lat},${lng})[highway];out geom;`;
   const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
   try {
     const res = await fetch(url);
-    if (!res.ok) return 0;
+    if (!res.ok) throw new Error(`status ${res.status}`);
     const data = await res.json();
     const way = data.elements && data.elements.find(e => e.geometry && e.geometry.length > 1);
-    if (!way) return 0;
+    if (!way) {
+      orientationCache.set(key, 0);
+      return 0;
+    }
     const g = way.geometry;
     const lat1 = g[0].lat, lon1 = g[0].lon;
     const lat2 = g[1].lat, lon2 = g[1].lon;
@@ -54,9 +70,12 @@ export async function getRoadOrientation(lat, lng) {
     const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
               Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
     const bearing = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+    orientationCache.set(key, bearing);
     return bearing;
   } catch (err) {
     console.error('orientation fetch error', err);
+    orientationFetchDisabled = true;
+    orientationCache.set(key, 0);
     return 0;
   }
 }

@@ -103,3 +103,14 @@ test('applyRoadOrientation sets rotation transform', async () => {
   expect(fake).toHaveBeenCalled();
   expect(inner.style.getPropertyValue('--rotation')).toContain('0');
 });
+
+test('getRoadOrientation caches failures', async () => {
+  const fake = jest.fn(() => Promise.reject(new Error('fail')));
+  global.fetch = fake;
+  window.fetch = fake;
+  const first = await saveLocTest.getRoadOrientation(1, 1);
+  expect(first).toBe(0);
+  const second = await saveLocTest.getRoadOrientation(1, 1);
+  expect(second).toBe(0);
+  expect(fake).toHaveBeenCalledTimes(1);
+});

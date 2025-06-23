@@ -42,8 +42,8 @@ let orientationFetchDisabled = false;
 // Fetch the angle of the nearest road around the given point using the
 // Overpass API. 0 degrees is returned if no road data is available.
 export async function getRoadOrientation(lat, lng) {
-  // round coordinates to roughly 1 meter precision
-  const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+  // round coordinates to roughly 10 meter precision to limit unique requests
+  const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
   if (orientationCache.has(key)) {
     return orientationCache.get(key);
   }

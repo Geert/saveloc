@@ -95,5 +95,5 @@ test('applyRoadOrientation sets rotation transform', async () => {
   window.fetch = fake;
   await saveLocTest.applyRoadOrientation(marker);
   expect(fake).toHaveBeenCalled();
-  expect(inner.style.getPropertyValue('--rotation')).toContain('90');
+  expect(inner.style.getPropertyValue('--rotation')).toContain('0');
 });

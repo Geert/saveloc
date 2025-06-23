@@ -67,7 +67,8 @@ export async function applyRoadOrientation(marker) {
   if (!inner) return;
   const { lat, lng } = marker.getLatLng();
   const angle = await getRoadOrientation(lat, lng);
-  inner.style.setProperty('--rotation', `${angle}deg`);
+  const rotation = angle - 90;
+  inner.style.setProperty('--rotation', `${rotation}deg`);
 }
 
 export function loadMap() {

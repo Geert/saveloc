@@ -169,6 +169,9 @@ function setupRotationHandling(marker, loc) {
     if (!e.shiftKey) return;
     L.DomEvent.stop(e);
     if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+    if (appState.map && appState.map.boxZoom && appState.map.boxZoom._enabled) {
+      appState.map.boxZoom.disable();
+    }
     const center = getCenterPoint();
     const start = Math.atan2(e.clientY - center.y, e.clientX - center.x);
     const startOffset = loc.rotation || 0;
@@ -182,6 +185,9 @@ function setupRotationHandling(marker, loc) {
     function onUp() {
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
+      if (appState.map && appState.map.boxZoom && !appState.map.boxZoom._enabled) {
+        appState.map.boxZoom.enable();
+      }
       saveLocations();
     }
     document.addEventListener('mousemove', onMove);

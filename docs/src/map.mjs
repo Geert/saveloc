@@ -34,12 +34,31 @@ const baseLayers = {
 let currentBaseLayer = null;
 let currentBaseLayerName = null;
 
-// Placeholder orientation logic. In a full implementation this would fetch the
-// nearest road and calculate its bearing so markers can rotate parallel to it.
+// Fetch the angle of the nearest road around the given point using the
+// Overpass API. 0 degrees is returned if no road data is available.
 export async function getRoadOrientation(lat, lng) {
-  // Network access to road data is blocked in the current environment.
-  // Returning 0 degrees until road orientation can be determined.
-  return 0;
+  const query = `[out:json];way(around:35,${lat},${lng})[highway];out geom;`;
+  const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return 0;
+    const data = await res.json();
+    const way = data.elements && data.elements.find(e => e.geometry && e.geometry.length > 1);
+    if (!way) return 0;
+    const g = way.geometry;
+    const lat1 = g[0].lat, lon1 = g[0].lon;
+    const lat2 = g[1].lat, lon2 = g[1].lon;
+    const toRad = d => d * Math.PI / 180;
+    const dLon = toRad(lon2 - lon1);
+    const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+    const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+              Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+    const bearing = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+    return bearing;
+  } catch (err) {
+    console.error('orientation fetch error', err);
+    return 0;
+  }
 }
 
 export async function applyRoadOrientation(marker) {

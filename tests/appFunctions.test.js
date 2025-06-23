@@ -87,6 +87,13 @@ test('applyRoadOrientation sets rotation transform', async () => {
   const iconEl = document.createElement('div');
   iconEl.appendChild(inner);
   const marker = { getLatLng: () => ({ lat: 0, lng: 0 }), _icon: iconEl };
+  const fake = jest.fn(() => Promise.resolve({
+    ok: true,
+    json: async () => ({ elements: [ { geometry: [ { lat: 0, lon: 0 }, { lat: 0, lon: 1 } ] } ] })
+  }));
+  global.fetch = fake;
+  window.fetch = fake;
   await saveLocTest.applyRoadOrientation(marker);
-  expect(inner.style.getPropertyValue('--rotation')).toContain('deg');
+  expect(fake).toHaveBeenCalled();
+  expect(inner.style.getPropertyValue('--rotation')).toContain('90');
 });

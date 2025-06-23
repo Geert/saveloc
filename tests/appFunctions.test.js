@@ -92,7 +92,7 @@ test('applyRoadOrientation sets rotation transform', async () => {
   inner.className = 'custom-label-marker-inner';
   const iconEl = document.createElement('div');
   iconEl.appendChild(inner);
-  const marker = { getLatLng: () => ({ lat: 0, lng: 0 }), _icon: iconEl };
+  const marker = { getLatLng: () => ({ lat: 0, lng: 0 }), _icon: iconEl, rotation: 30 };
   const fake = jest.fn(() => Promise.resolve({
     ok: true,
     json: async () => ({ elements: [ { geometry: [ { lat: 0, lon: 0 }, { lat: 0, lon: 1 } ] } ] })
@@ -101,7 +101,7 @@ test('applyRoadOrientation sets rotation transform', async () => {
   window.fetch = fake;
   await saveLocTest.applyRoadOrientation(marker);
   expect(fake).toHaveBeenCalled();
-  expect(inner.style.getPropertyValue('--rotation')).toContain('0');
+  expect(inner.style.getPropertyValue('--rotation')).toContain('30');
 });
 
 test('getRoadOrientation caches failures', async () => {

@@ -86,8 +86,9 @@ export async function applyRoadOrientation(marker) {
   if (!inner) return;
   const { lat, lng } = marker.getLatLng();
   const angle = await getRoadOrientation(lat, lng);
-  const rotation = angle - 90;
-  inner.style.setProperty('--rotation', `${rotation}deg`);
+  const base = angle - 90;
+  const extra = marker.rotation || 0;
+  inner.style.setProperty('--rotation', `${base + extra}deg`);
 }
 
 export function loadMap() {
@@ -159,6 +160,71 @@ export function createLabelIcon(labelText, locId, latLng) {
   });
 }
 
+function setupRotationHandling(marker, loc) {
+  function getCenterPoint() {
+    return appState.map.latLngToContainerPoint(marker.getLatLng());
+  }
+
+  function onMouseDown(e) {
+    if (!e.shiftKey) return;
+    L.DomEvent.stop(e);
+    const center = getCenterPoint();
+    const start = Math.atan2(e.clientY - center.y, e.clientX - center.x);
+    const startOffset = loc.rotation || 0;
+    function onMove(ev) {
+      const ang = Math.atan2(ev.clientY - center.y, ev.clientX - center.x);
+      const delta = (ang - start) * 180 / Math.PI;
+      marker.rotation = startOffset + delta;
+      loc.rotation = marker.rotation;
+      applyRoadOrientation(marker);
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      saveLocations();
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }
+
+  function onTouchStart(e) {
+    if (e.touches.length !== 2) return;
+    e.preventDefault();
+    L.DomEvent.stop(e);
+    const getAng = ev => {
+      const t1 = ev.touches[0];
+      const t2 = ev.touches[1];
+      return Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX);
+    };
+    const start = getAng(e);
+    const startOffset = loc.rotation || 0;
+    function onMove(ev) {
+      if (ev.touches.length !== 2) return;
+      const ang = getAng(ev);
+      const delta = (ang - start) * 180 / Math.PI;
+      marker.rotation = startOffset + delta;
+      loc.rotation = marker.rotation;
+      applyRoadOrientation(marker);
+    }
+    function onEnd(ev) {
+      if (ev.touches && ev.touches.length > 1) return;
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+      document.removeEventListener('touchcancel', onEnd);
+      saveLocations();
+    }
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd);
+    document.addEventListener('touchcancel', onEnd);
+  }
+
+  marker.on('add', () => {
+    if (!marker._icon) return;
+    marker._icon.addEventListener('mousedown', onMouseDown);
+    marker._icon.addEventListener('touchstart', onTouchStart, { passive: false });
+  });
+}
+
 export function renderLocationsList() {
   const list = document.getElementById('locationsList');
   const message = document.getElementById('no-locations-message');
@@ -197,7 +263,9 @@ export function renderLocationsList() {
         icon: createLabelIcon(loc.label, loc.id, { lat: loc.lat, lng: loc.lng }),
         draggable: appState.isInEditMode
       }).addTo(appState.markersLayer);
+      marker.rotation = loc.rotation || 0;
       applyRoadOrientation(marker);
+      setupRotationHandling(marker, loc);
       marker.locationId = loc.id;
       if (markerClickHandler) marker.on('contextmenu', () => markerClickHandler(loc));
       marker.on('dragend', evt => {
@@ -234,6 +302,7 @@ export function updateMarkerPosition(id, lat, lng) {
   const marker = appState.markers[id];
   if (marker) {
     marker.setLatLng({ lat, lng });
+    applyRoadOrientation(marker);
   }
 }
 

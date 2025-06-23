@@ -67,7 +67,7 @@ test('clearAllLocations empties stored locations when confirmed', () => {
 
 test('createLabelIcon sanitizes label text', () => {
   window.L.divIcon = jest.fn(opts => opts);
-  const icon = saveLocTest.createLabelIcon('Hi <b>', '1');
+  const icon = saveLocTest.createLabelIcon('Hi <b>', '1', { lat: 0, lng: 0 });
   expect(icon.html).toContain('Hi');
   expect(icon.html).not.toContain('<b>');
 });
@@ -75,10 +75,16 @@ test('createLabelIcon sanitizes label text', () => {
 test('createLabelIcon adds wiggle class in edit mode', () => {
   window.L.divIcon = jest.fn(opts => opts);
   window.appState.isInEditMode = true;
-  const icon = saveLocTest.createLabelIcon('A', '2');
+  const icon = saveLocTest.createLabelIcon('A', '2', { lat: 0, lng: 0 });
   expect(icon.html).toContain('wiggle-marker');
   expect(icon.className).not.toContain('wiggle-marker');
   window.appState.isInEditMode = false;
+});
+
+test('createLabelIcon includes size style', () => {
+  window.L.divIcon = jest.fn(opts => opts);
+  const icon = saveLocTest.createLabelIcon('A', '3', { lat: 0, lng: 0 });
+  expect(icon.html).toMatch(/style="width:\d+px;height:\d+px/);
 });
 
 test('applyRoadOrientation sets rotation transform', async () => {

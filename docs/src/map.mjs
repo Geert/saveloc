@@ -93,20 +93,50 @@ export function initMap() {
   currentBaseLayer.addTo(appState.map);
 
   appState.markersLayer = L.layerGroup().addTo(appState.map);
+
+  appState.map.on('zoomend', updateAllMarkerSizes);
 }
 
-export function createLabelIcon(labelText, locId) {
+export function metersToDegreesLat(m) {
+  return m / 111111;
+}
+
+export function metersToDegreesLng(m, lat) {
+  return m / (111111 * Math.cos(lat * Math.PI / 180));
+}
+
+function computeMarkerDimensions(lat, lng) {
+  if (!appState.map || typeof appState.map.project !== 'function') {
+    return { width: 40, height: 10 };
+  }
+  const zoom = appState.map.getZoom();
+  const center = appState.map.project([lat, lng], zoom);
+  const north = appState.map.project([lat + metersToDegreesLat(1), lng], zoom);
+  const east = appState.map.project([
+    lat,
+    lng + metersToDegreesLng(4, lat)
+  ], zoom);
+  const height = Math.abs(north.y - center.y);
+  const width = Math.abs(east.x - center.x);
+  return { width, height };
+}
+
+export function createLabelIcon(labelText, locId, latLng) {
   const displayLabel = labelText && labelText.trim() !== ''
     ? labelText.substring(0, 15)
     : '📍';
   const wiggleClass = appState.isInEditMode ? ' wiggle-marker' : '';
   const safe = displayLabel.replace(/[<>&'"\\/]/g, c => '&#' + c.charCodeAt(0) + ';');
+  const lat = latLng ? latLng.lat : 0;
+  const lng = latLng ? latLng.lng : 0;
+  const { width, height } = computeMarkerDimensions(lat, lng);
+  const style = `style="width:${width}px;height:${height}px;line-height:${height}px"`;
   return L.divIcon({
-    html: `<div class="custom-label-marker-inner${wiggleClass}"><div class="custom-label-marker-text">${safe}</div></div>`,
+    html: `<div class="custom-label-marker-inner${wiggleClass}" ${style}><div class="custom-label-marker-text">${safe}</div></div>`,
     className: 'custom-label-marker location-marker-' + locId,
-    iconSize: null,
-    iconAnchor: [20, 10],
-    popupAnchor: [0, -10]
+    iconSize: [width, height],
+    iconAnchor: [width / 2, height / 2],
+    popupAnchor: [0, -height / 2]
   });
 }
 
@@ -145,7 +175,7 @@ export function renderLocationsList() {
     }
     if (appState.map && appState.markersLayer) {
       const marker = L.marker([loc.lat, loc.lng], {
-        icon: createLabelIcon(loc.label, loc.id),
+        icon: createLabelIcon(loc.label, loc.id, { lat: loc.lat, lng: loc.lng }),
         draggable: appState.isInEditMode
       }).addTo(appState.markersLayer);
       applyRoadOrientation(marker);
@@ -186,6 +216,17 @@ export function updateMarkerPosition(id, lat, lng) {
   if (marker) {
     marker.setLatLng({ lat, lng });
   }
+}
+
+export function updateAllMarkerSizes() {
+  if (!appState.map) return;
+  appState.locations.forEach(loc => {
+    const marker = appState.markers[loc.id];
+    if (!marker) return;
+    const icon = createLabelIcon(loc.label, loc.id, marker.getLatLng());
+    marker.setIcon(icon);
+    applyRoadOrientation(marker);
+  });
 }
 
 export function getBaseLayerNames() {

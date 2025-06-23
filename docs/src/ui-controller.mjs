@@ -435,6 +435,7 @@ import { t } from "../i18n.mjs";
     getCurrentBaseLayerName: mapModule.getCurrentBaseLayerName,
     applyRoadOrientation: mapModule.applyRoadOrientation,
     getRoadOrientation: mapModule.getRoadOrientation,
+    updateAllMarkerSizes: mapModule.updateAllMarkerSizes,
     forceRefresh
   };
 

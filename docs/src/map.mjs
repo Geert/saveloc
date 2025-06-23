@@ -227,11 +227,19 @@ function setupRotationHandling(marker, loc) {
     document.addEventListener('touchcancel', onEnd);
   }
 
-  marker.on('add', () => {
+  function attachHandlers() {
     if (!marker._icon) return;
     marker._icon.addEventListener('mousedown', onMouseDown, { passive: false, capture: true });
     marker._icon.addEventListener('touchstart', onTouchStart, { passive: false, capture: true });
-  });
+  }
+
+  marker._attachRotationListeners = attachHandlers;
+
+  if (marker._icon) {
+    attachHandlers();
+  }
+
+  marker.on('add', attachHandlers);
 }
 
 export function renderLocationsList() {
@@ -322,6 +330,9 @@ export function updateAllMarkerSizes() {
     if (!marker) return;
     const icon = createLabelIcon(loc.label, loc.id, marker.getLatLng());
     marker.setIcon(icon);
+    if (typeof marker._attachRotationListeners === 'function') {
+      marker._attachRotationListeners();
+    }
     applyRoadOrientation(marker);
   });
 }

@@ -142,7 +142,8 @@ import { t } from "../i18n.mjs";
         ...appState.locations[index],
         label: labelField.value.trim(),
         lat: parseFloat(latField.value),
-        lng: parseFloat(lngField.value)
+        lng: parseFloat(lngField.value),
+        rotation: appState.locations[index].rotation || 0
       };
       storage.saveLocations();
       mapModule.renderLocationsList();
@@ -200,6 +201,7 @@ import { t } from "../i18n.mjs";
       label,
       lat,
       lng,
+      rotation: 0,
       timestamp: new Date().toISOString()
     };
     appState.locations.push(newLocation);
@@ -433,6 +435,9 @@ import { t } from "../i18n.mjs";
     setBaseLayer: mapModule.setBaseLayer,
     getBaseLayerNames: mapModule.getBaseLayerNames,
     getCurrentBaseLayerName: mapModule.getCurrentBaseLayerName,
+    applyRoadOrientation: mapModule.applyRoadOrientation,
+    getRoadOrientation: mapModule.getRoadOrientation,
+    updateAllMarkerSizes: mapModule.updateAllMarkerSizes,
     forceRefresh
   };
 

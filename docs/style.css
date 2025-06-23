@@ -370,14 +370,18 @@ html, body {
 }
 
 /* Custom Label Marker Styles (from previous implementation) */
-.custom-label-marker {
+
+.custom-label-marker-inner {
     background-color: white;
     border: 1px solid #007bff;
-    border-radius: 20px;
+    border-radius: 0;
     padding: 3px 8px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     text-align: center;
     white-space: nowrap;
+    transform-origin: center;
+    transform: rotate(var(--rotation, 0deg));
+    display: inline-block;
 }
 
 .custom-label-marker-text {
@@ -388,11 +392,22 @@ html, body {
     max-width: 100px;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: inline-block;
 }
 
 .custom-label-marker-text:empty::before {
     content: '📍';
     font-size: 14px;
+}
+
+@keyframes wiggle {
+    0%, 100% { transform: rotate(calc(var(--rotation, 0deg) + 0deg)); }
+    25% { transform: rotate(calc(var(--rotation, 0deg) + 3deg)); }
+    75% { transform: rotate(calc(var(--rotation, 0deg) - 3deg)); }
+}
+
+.wiggle-marker {
+    animation: wiggle 0.6s ease-in-out infinite;
 }
 
 /* Minor adjustments for very small screens if needed */

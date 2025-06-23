@@ -67,7 +67,50 @@ test('clearAllLocations empties stored locations when confirmed', () => {
 
 test('createLabelIcon sanitizes label text', () => {
   window.L.divIcon = jest.fn(opts => opts);
-  const icon = saveLocTest.createLabelIcon('Hi <b>', '1');
+  const icon = saveLocTest.createLabelIcon('Hi <b>', '1', { lat: 0, lng: 0 });
   expect(icon.html).toContain('Hi');
   expect(icon.html).not.toContain('<b>');
+});
+
+test('createLabelIcon adds wiggle class in edit mode', () => {
+  window.L.divIcon = jest.fn(opts => opts);
+  window.appState.isInEditMode = true;
+  const icon = saveLocTest.createLabelIcon('A', '2', { lat: 0, lng: 0 });
+  expect(icon.html).toContain('wiggle-marker');
+  expect(icon.className).not.toContain('wiggle-marker');
+  window.appState.isInEditMode = false;
+});
+
+test('createLabelIcon includes size style', () => {
+  window.L.divIcon = jest.fn(opts => opts);
+  const icon = saveLocTest.createLabelIcon('A', '3', { lat: 0, lng: 0 });
+  expect(icon.html).toMatch(/style="width:\d+px;height:\d+px/);
+});
+
+test('applyRoadOrientation sets rotation transform', async () => {
+  const inner = document.createElement('div');
+  inner.className = 'custom-label-marker-inner';
+  const iconEl = document.createElement('div');
+  iconEl.appendChild(inner);
+  const marker = { getLatLng: () => ({ lat: 0, lng: 0 }), _icon: iconEl, rotation: 30 };
+  const fake = jest.fn(() => Promise.resolve({
+    ok: true,
+    json: async () => ({ elements: [ { geometry: [ { lat: 0, lon: 0 }, { lat: 0, lon: 1 } ] } ] })
+  }));
+  global.fetch = fake;
+  window.fetch = fake;
+  await saveLocTest.applyRoadOrientation(marker);
+  expect(fake).toHaveBeenCalled();
+  expect(inner.style.getPropertyValue('--rotation')).toContain('30');
+});
+
+test('getRoadOrientation caches failures', async () => {
+  const fake = jest.fn(() => Promise.reject(new Error('fail')));
+  global.fetch = fake;
+  window.fetch = fake;
+  const first = await saveLocTest.getRoadOrientation(1, 1);
+  expect(first).toBe(0);
+  const second = await saveLocTest.getRoadOrientation(1, 1);
+  expect(second).toBe(0);
+  expect(fake).toHaveBeenCalledTimes(1);
 });

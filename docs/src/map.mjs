@@ -34,6 +34,63 @@ const baseLayers = {
 let currentBaseLayer = null;
 let currentBaseLayerName = null;
 
+// Cache road orientations so repeated calls don't hit the network repeatedly.
+const orientationCache = new Map();
+// Flag to avoid further network requests after one fails.
+let orientationFetchDisabled = false;
+
+// Fetch the angle of the nearest road around the given point using the
+// Overpass API. 0 degrees is returned if no road data is available.
+export async function getRoadOrientation(lat, lng) {
+  // round coordinates to roughly 10 meter precision to limit unique requests
+  const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+  if (orientationCache.has(key)) {
+    return orientationCache.get(key);
+  }
+  if (orientationFetchDisabled) {
+    return 0;
+  }
+  const query = `[out:json];way(around:35,${lat},${lng})[highway];out geom;`;
+  const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`status ${res.status}`);
+    const data = await res.json();
+    const way = data.elements && data.elements.find(e => e.geometry && e.geometry.length > 1);
+    if (!way) {
+      orientationCache.set(key, 0);
+      return 0;
+    }
+    const g = way.geometry;
+    const lat1 = g[0].lat, lon1 = g[0].lon;
+    const lat2 = g[1].lat, lon2 = g[1].lon;
+    const toRad = d => d * Math.PI / 180;
+    const dLon = toRad(lon2 - lon1);
+    const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+    const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+              Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+    const bearing = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+    orientationCache.set(key, bearing);
+    return bearing;
+  } catch (err) {
+    console.error('orientation fetch error', err);
+    orientationFetchDisabled = true;
+    orientationCache.set(key, 0);
+    return 0;
+  }
+}
+
+export async function applyRoadOrientation(marker) {
+  if (!marker._icon) return;
+  const inner = marker._icon.querySelector('.custom-label-marker-inner');
+  if (!inner) return;
+  const { lat, lng } = marker.getLatLng();
+  const angle = await getRoadOrientation(lat, lng);
+  const base = angle - 90;
+  const extra = marker.rotation || 0;
+  inner.style.setProperty('--rotation', `${base + extra}deg`);
+}
+
 export function loadMap() {
   return new Promise((resolve, reject) => {
     try {
@@ -56,17 +113,133 @@ export function initMap() {
   currentBaseLayer.addTo(appState.map);
 
   appState.markersLayer = L.layerGroup().addTo(appState.map);
+
+  appState.map.on('zoomend', updateAllMarkerSizes);
 }
 
-export function createLabelIcon(labelText, locId) {
-  const displayLabel = labelText && labelText.trim() !== '' ? labelText.substring(0, 15) : '📍';
+export function metersToDegreesLat(m) {
+  return m / 111111;
+}
+
+export function metersToDegreesLng(m, lat) {
+  return m / (111111 * Math.cos(lat * Math.PI / 180));
+}
+
+function computeMarkerDimensions(lat, lng) {
+  if (!appState.map || typeof appState.map.project !== 'function') {
+    return { width: 40, height: 10 };
+  }
+  const zoom = appState.map.getZoom();
+  const center = appState.map.project([lat, lng], zoom);
+  const north = appState.map.project([lat + metersToDegreesLat(1), lng], zoom);
+  const east = appState.map.project([
+    lat,
+    lng + metersToDegreesLng(4, lat)
+  ], zoom);
+  const height = Math.abs(north.y - center.y);
+  const width = Math.abs(east.x - center.x);
+  return { width, height };
+}
+
+export function createLabelIcon(labelText, locId, latLng) {
+  const displayLabel = labelText && labelText.trim() !== ''
+    ? labelText.substring(0, 15)
+    : '📍';
+  const wiggleClass = appState.isInEditMode ? ' wiggle-marker' : '';
+  const safe = displayLabel.replace(/[<>&'"\\/]/g, c => '&#' + c.charCodeAt(0) + ';');
+  const lat = latLng ? latLng.lat : 0;
+  const lng = latLng ? latLng.lng : 0;
+  const { width, height } = computeMarkerDimensions(lat, lng);
+  const style = `style="width:${width}px;height:${height}px;line-height:${height}px"`;
   return L.divIcon({
-    html: `<div class="custom-label-marker-text">${displayLabel.replace(/[<>&'"\\/]/g, c => '&#' + c.charCodeAt(0) + ';')}</div>`,
+    html: `<div class="custom-label-marker-inner${wiggleClass}" ${style}><div class="custom-label-marker-text">${safe}</div></div>`,
     className: 'custom-label-marker location-marker-' + locId,
-    iconSize: null,
-    iconAnchor: [20, 10],
-    popupAnchor: [0, -10]
+    iconSize: [width, height],
+    iconAnchor: [width / 2, height / 2],
+    popupAnchor: [0, -height / 2]
   });
+}
+
+function setupRotationHandling(marker, loc) {
+  function getCenterPoint() {
+    return appState.map.latLngToContainerPoint(marker.getLatLng());
+  }
+
+  function onMouseDown(e) {
+    // Use Alt/Option drag to rotate so Shift can remain for box zoom
+    if (!e.altKey) return;
+    L.DomEvent.stop(e);
+    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+    if (appState.map && appState.map.boxZoom && appState.map.boxZoom._enabled) {
+      appState.map.boxZoom.disable();
+    }
+    const center = getCenterPoint();
+    const start = Math.atan2(e.clientY - center.y, e.clientX - center.x);
+    const startOffset = loc.rotation || 0;
+    function onMove(ev) {
+      const ang = Math.atan2(ev.clientY - center.y, ev.clientX - center.x);
+      const delta = (ang - start) * 180 / Math.PI;
+      marker.rotation = startOffset + delta;
+      loc.rotation = marker.rotation;
+      applyRoadOrientation(marker);
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      if (appState.map && appState.map.boxZoom && !appState.map.boxZoom._enabled) {
+        appState.map.boxZoom.enable();
+      }
+      saveLocations();
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }
+
+  function onTouchStart(e) {
+    if (e.touches.length !== 2) return;
+    e.preventDefault();
+    L.DomEvent.stop(e);
+    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+    const getAng = ev => {
+      const t1 = ev.touches[0];
+      const t2 = ev.touches[1];
+      return Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX);
+    };
+    const start = getAng(e);
+    const startOffset = loc.rotation || 0;
+    function onMove(ev) {
+      if (ev.touches.length !== 2) return;
+      const ang = getAng(ev);
+      const delta = (ang - start) * 180 / Math.PI;
+      marker.rotation = startOffset + delta;
+      loc.rotation = marker.rotation;
+      applyRoadOrientation(marker);
+    }
+    function onEnd(ev) {
+      if (ev.touches && ev.touches.length > 1) return;
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+      document.removeEventListener('touchcancel', onEnd);
+      saveLocations();
+    }
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd);
+    document.addEventListener('touchcancel', onEnd);
+  }
+
+  function attachHandlers() {
+    if (!marker._icon) return;
+    marker._icon.addEventListener('mousedown', onMouseDown, { passive: false, capture: true });
+    marker._icon.addEventListener('touchstart', onTouchStart, { passive: false, capture: true });
+  }
+
+  marker._attachRotationListeners = attachHandlers;
+
+  if (marker._icon) {
+    attachHandlers();
+  }
+
+  marker.on('add', attachHandlers);
 }
 
 export function renderLocationsList() {
@@ -104,9 +277,12 @@ export function renderLocationsList() {
     }
     if (appState.map && appState.markersLayer) {
       const marker = L.marker([loc.lat, loc.lng], {
-        icon: createLabelIcon(loc.label, loc.id),
+        icon: createLabelIcon(loc.label, loc.id, { lat: loc.lat, lng: loc.lng }),
         draggable: appState.isInEditMode
       }).addTo(appState.markersLayer);
+      marker.rotation = loc.rotation || 0;
+      applyRoadOrientation(marker);
+      setupRotationHandling(marker, loc);
       marker.locationId = loc.id;
       if (markerClickHandler) marker.on('contextmenu', () => markerClickHandler(loc));
       marker.on('dragend', evt => {
@@ -117,6 +293,7 @@ export function renderLocationsList() {
           appState.locations[idx].lng = m.lng;
           saveLocations();
         }
+        applyRoadOrientation(evt.target);
       });
       appState.markers[loc.id] = marker;
       bounds.push([loc.lat, loc.lng]);
@@ -142,7 +319,22 @@ export function updateMarkerPosition(id, lat, lng) {
   const marker = appState.markers[id];
   if (marker) {
     marker.setLatLng({ lat, lng });
+    applyRoadOrientation(marker);
   }
+}
+
+export function updateAllMarkerSizes() {
+  if (!appState.map) return;
+  appState.locations.forEach(loc => {
+    const marker = appState.markers[loc.id];
+    if (!marker) return;
+    const icon = createLabelIcon(loc.label, loc.id, marker.getLatLng());
+    marker.setIcon(icon);
+    if (typeof marker._attachRotationListeners === 'function') {
+      marker._attachRotationListeners();
+    }
+    applyRoadOrientation(marker);
+  });
 }
 
 export function getBaseLayerNames() {

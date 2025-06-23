@@ -166,7 +166,8 @@ function setupRotationHandling(marker, loc) {
   }
 
   function onMouseDown(e) {
-    if (!e.shiftKey) return;
+    // Use Alt/Option drag to rotate so Shift can remain for box zoom
+    if (!e.altKey) return;
     L.DomEvent.stop(e);
     if (e.stopImmediatePropagation) e.stopImmediatePropagation();
     if (appState.map && appState.map.boxZoom && appState.map.boxZoom._enabled) {

@@ -168,6 +168,7 @@ function setupRotationHandling(marker, loc) {
   function onMouseDown(e) {
     if (!e.shiftKey) return;
     L.DomEvent.stop(e);
+    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
     const center = getCenterPoint();
     const start = Math.atan2(e.clientY - center.y, e.clientX - center.x);
     const startOffset = loc.rotation || 0;
@@ -191,6 +192,7 @@ function setupRotationHandling(marker, loc) {
     if (e.touches.length !== 2) return;
     e.preventDefault();
     L.DomEvent.stop(e);
+    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
     const getAng = ev => {
       const t1 = ev.touches[0];
       const t2 = ev.touches[1];
@@ -220,8 +222,8 @@ function setupRotationHandling(marker, loc) {
 
   marker.on('add', () => {
     if (!marker._icon) return;
-    marker._icon.addEventListener('mousedown', onMouseDown);
-    marker._icon.addEventListener('touchstart', onTouchStart, { passive: false });
+    marker._icon.addEventListener('mousedown', onMouseDown, { passive: false, capture: true });
+    marker._icon.addEventListener('touchstart', onTouchStart, { passive: false, capture: true });
   });
 }
 

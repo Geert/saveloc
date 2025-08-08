@@ -6,6 +6,46 @@ import * as mapModule from "./map.mjs";
 import { requestLocationPermission } from "./permission.mjs";
 import { t } from "../i18n.mjs";
 
+  async function fetchNearestRoadBearing(lat, lng) {
+    const query = `[out:json];way(around:30,${lat},${lng})[highway];out geom;`;
+    const url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query);
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.elements && data.elements.length) {
+        let bestAngle = 0;
+        let bestDist = Infinity;
+        data.elements.forEach(el => {
+          if (!el.geometry || el.geometry.length < 2) return;
+          for (let i = 0; i < el.geometry.length - 1; i++) {
+            const p0 = el.geometry[i];
+            const p1 = el.geometry[i + 1];
+            const dy = p1.lat - p0.lat;
+            const dx = (p1.lon - p0.lon) * Math.cos((p0.lat * Math.PI) / 180);
+            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+            const dist = Math.hypot((p0.lat + p1.lat) / 2 - lat, (p0.lon + p1.lon) / 2 - lng);
+            if (dist < bestDist) {
+              bestDist = dist;
+              bestAngle = angle;
+            }
+          }
+        });
+        return bestAngle;
+      }
+    } catch (e) {
+      // ignore errors
+    }
+    return 0;
+  }
+
+  async function autoRotateZeroLocations() {
+    for (const loc of appState.locations) {
+      if (!loc.rotation || loc.rotation === 0) {
+        loc.rotation = await fetchNearestRoadBearing(loc.lat, loc.lng);
+      }
+    }
+  }
+
   function showAddForm(data = {}) {
     const section = document.getElementById('location-form-section');
     const idInput = document.getElementById('locationId');
@@ -252,6 +292,9 @@ import { t } from "../i18n.mjs";
       const label = xmlDoc.createElement('label');
       label.textContent = loc.label || '';
       plaats.appendChild(label);
+      const rotation = xmlDoc.createElement('rotation');
+      rotation.textContent = loc.rotation || 0;
+      plaats.appendChild(rotation);
       xmlDoc.documentElement.appendChild(plaats);
     });
     const serializer = new XMLSerializer();
@@ -293,55 +336,62 @@ import { t } from "../i18n.mjs";
     const file = event.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = function(e) {
-      try {
-        const xmlString = e.target.result;
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlString, 'application/xml');
-        const errorNode = xmlDoc.querySelector('parsererror');
-        if (errorNode) {
-          showNotification(t('error_parsing_xml'), 'error');
-          return;
-        }
-        const plaatsElements = xmlDoc.getElementsByTagName('plaatsen');
-        if (plaatsElements.length === 0) {
-          showNotification(t('no_locations_in_file'), 'info');
-          return;
-        }
-        appState.locations = [];
-        let importedCount = 0;
-        for (let i = 0; i < plaatsElements.length; i++) {
-          const plaats = plaatsElements[i];
-          const idNode = plaats.getElementsByTagName('id')[0];
-          const latNode = plaats.getElementsByTagName('lat')[0];
-          const lngNode = plaats.getElementsByTagName('lng')[0];
-          const labelNode = plaats.getElementsByTagName('label')[0];
-          if (idNode && latNode && lngNode) {
-            const lat = parseFloat(latNode.textContent);
-            const lng = parseFloat(lngNode.textContent);
-            let label = labelNode ? labelNode.textContent : '';
-            if (isNaN(lat) || isNaN(lng)) continue;
-            if (!label && idNode.textContent) label = idNode.textContent;
-            appState.locations.push({ id: Date.now().toString() + '_' + i, label, lat, lng, timestamp: new Date().toISOString() });
-            importedCount++;
+    return new Promise(resolve => {
+      reader.onload = async function(e) {
+        try {
+          const xmlString = e.target.result;
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(xmlString, 'application/xml');
+          const errorNode = xmlDoc.querySelector('parsererror');
+          if (errorNode) {
+            showNotification(t('error_parsing_xml'), 'error');
+            return;
           }
+          const plaatsElements = xmlDoc.getElementsByTagName('plaatsen');
+          if (plaatsElements.length === 0) {
+            showNotification(t('no_locations_in_file'), 'info');
+            return;
+          }
+          appState.locations = [];
+          let importedCount = 0;
+          for (let i = 0; i < plaatsElements.length; i++) {
+            const plaats = plaatsElements[i];
+            const idNode = plaats.getElementsByTagName('id')[0];
+            const latNode = plaats.getElementsByTagName('lat')[0];
+            const lngNode = plaats.getElementsByTagName('lng')[0];
+            const labelNode = plaats.getElementsByTagName('label')[0];
+            const rotNode = plaats.getElementsByTagName('rotation')[0];
+            if (idNode && latNode && lngNode) {
+              const lat = parseFloat(latNode.textContent);
+              const lng = parseFloat(lngNode.textContent);
+              let label = labelNode ? labelNode.textContent : '';
+              const rotation = rotNode ? parseFloat(rotNode.textContent) : 0;
+              if (isNaN(lat) || isNaN(lng)) continue;
+              if (!label && idNode.textContent) label = idNode.textContent;
+              appState.locations.push({ id: Date.now().toString() + '_' + i, label, lat, lng, rotation, timestamp: new Date().toISOString() });
+              importedCount++;
+            }
+          }
+          if (importedCount > 0) {
+            await autoRotateZeroLocations();
+            storage.saveLocations();
+            mapModule.renderLocationsList();
+            showNotification(t('locations_imported', { count: importedCount }), 'success');
+          }
+        } catch (error) {
+          showNotification(t('an_error_occurred'), 'error');
         }
-        if (importedCount > 0) {
-          storage.saveLocations();
-          mapModule.renderLocationsList();
-          showNotification(t('locations_imported', { count: importedCount }), 'success');
-        }
-      } catch (error) {
-        showNotification(t('an_error_occurred'), 'error');
-      }
-      event.target.value = null;
-      closeDrawer();
-    };
-    reader.onerror = function() {
-      showNotification(t('error_reading_file'), 'error');
-      event.target.value = null;
-    };
-    reader.readAsText(file);
+        event.target.value = null;
+        closeDrawer();
+        resolve();
+      };
+      reader.onerror = function() {
+        showNotification(t('error_reading_file'), 'error');
+        event.target.value = null;
+        resolve();
+      };
+      reader.readAsText(file);
+    });
   }
 
   function attachEventListeners() {

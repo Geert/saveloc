@@ -27,7 +27,7 @@ test('showNotification appends element with correct classes', () => {
 });
 
 test('exportToXml creates and downloads xml', async () => {
-  saveLocTest.setLocations([{ id: '1', lat: 1, lng: 2, label: 'A' }]);
+  saveLocTest.setLocations([{ id: '1', lat: 1, lng: 2, label: 'A', rotation: 10 }]);
   let capturedBlob;
   window.URL.createObjectURL = jest.fn(blob => {
     capturedBlob = blob;
@@ -44,6 +44,17 @@ test('exportToXml creates and downloads xml', async () => {
   expect(capturedBlob.type).toBe('application/xml;charset=utf-16');
   appendSpy.mockRestore();
   removeSpy.mockRestore();
+});
+
+test('handleFileImport imports xml without rotation', async () => {
+  const xml = '<?xml version="1.0"?><root><plaatsen><id>1</id><lat>1</lat><lng>2</lng><label>A</label></plaatsen></root>';
+  const file = new window.File([xml], 'test.xml');
+  const originalFetch = global.fetch;
+  global.fetch = jest.fn().mockResolvedValue({ json: () => Promise.resolve({ elements: [] }) });
+  await saveLocTest.handleFileImport({ target: { files: [file], value: null } });
+  expect(saveLocTest.getLocations().length).toBe(1);
+  expect(saveLocTest.getLocations()[0].rotation).toBe(0);
+  global.fetch = originalFetch;
 });
 
 test('addOrUpdateLocation adds new location from modal inputs', () => {

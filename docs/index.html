@@ -54,6 +54,10 @@
                 <label for="editLocationLngDrawer" data-i18n="longitude">Longitude:</label>
                 <input type="number" id="editLocationLngDrawer" step="0.000001">
                 </div>
+                <div>
+                <label for="editLocationRotDrawer" data-i18n="rotation">Rotation:</label>
+                <input type="number" id="editLocationRotDrawer" step="1">
+                </div>
                 <div class="form-buttons-container">
                     <button type="button" id="updateLocationToCurrentBtn" class="btn btn-update" data-i18n="update_to_current">🎯 Update to Current</button>
                     <button type="button" id="saveLocationDrawerBtn" class="btn btn-primary" data-i18n="save_changes">Save Changes</button>
@@ -80,6 +84,10 @@
                 <label for="locationLng" data-i18n="longitude">Longitude:</label>
                 <input type="number" id="locationLng" step="0.000001">
             </div>
+            <div>
+                <label for="locationRotation" data-i18n="rotation">Rotation:</label>
+                <input type="number" id="locationRotation" step="1" value="0">
+            </div>
             <div class="form-buttons-container">
                 <button type="button" id="saveLocationBtn" class="btn btn-primary" data-i18n="save_location">Save Location</button>
                 <button type="button" id="cancelFormBtn" class="btn btn-secondary" data-i18n="cancel">Cancel</button>
@@ -98,6 +106,7 @@
     <div id="notification-container"></div>
 
     <script src="vendor/leaflet.js"></script>
+    <script src="vendor/leaflet.path.transform.js"></script>
     <script type="module" src="main.mjs"></script>
     <script>
       if ('serviceWorker' in navigator) {

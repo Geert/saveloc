@@ -50,6 +50,7 @@ test('addOrUpdateLocation adds new location from modal inputs', () => {
   document.getElementById('locationLabel').value = 'Home';
   document.getElementById('locationLat').value = '1';
   document.getElementById('locationLng').value = '2';
+  document.getElementById('locationRotation').value = '0';
   document.getElementById('locationId').value = '';
   saveLocTest.addOrUpdateLocation('new');
   expect(saveLocTest.getLocations().length).toBe(1);

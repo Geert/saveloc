@@ -11,7 +11,8 @@ module.exports = async function loadDom() {
     .replace(/<script[^>]*src="src\/[^"]*"[^>]*><\/script>/g, '')
     .replace(/<link[^>]*href="style.css"[^>]*>/, '')
     .replace(/<link[^>]*href="vendor\/leaflet\.css"[^>]*>/, '')
-    .replace(/<script[^>]*src="vendor\/leaflet\.js"[^>]*><\/script>/, '');
+    .replace(/<script[^>]*src="vendor\/leaflet\.js"[^>]*><\/script>/, '')
+    .replace(/<script[^>]*src="vendor\/leaflet\.path\.transform\.js"[^>]*><\/script>/, '');
   const dom = new JSDOM(html, { runScripts: 'dangerously', resources: 'usable', url: 'http://localhost' });
 
   // Remove external styles/scripts to avoid network access
@@ -92,6 +93,44 @@ module.exports = async function loadDom() {
       };
       markers.push(marker);
       return marker;
+    },
+    polygon: (latLngs = [], opts = {}) => {
+      const events = {};
+      let center = { lat: 0, lng: 0 };
+      if (Array.isArray(latLngs) && latLngs.length) {
+        let sumLat = 0, sumLng = 0;
+        latLngs.forEach(ll => { sumLat += ll.lat || ll[0]; sumLng += ll.lng || ll[1]; });
+        center = { lat: sumLat / latLngs.length, lng: sumLng / latLngs.length };
+      }
+      const poly = {
+        options: opts,
+        addTo: () => poly,
+        on: (evt, handler) => { events[evt] = handler; return poly; },
+        getLatLng: () => center,
+        setLatLng: ll => { center = { lat: ll.lat, lng: ll.lng }; },
+        setLatLngs: lls => {
+          if (Array.isArray(lls) && lls.length) {
+            let sumLat = 0, sumLng = 0;
+            lls.forEach(p => { sumLat += p.lat || p[0]; sumLng += p.lng || p[1]; });
+            center = { lat: sumLat / lls.length, lng: sumLng / lls.length };
+          }
+        },
+        getBounds: () => ({ getCenter: () => center }),
+        getLatLngs: () => [[{ lat: center.lat, lng: center.lng }]],
+        locationId: '',
+        dragging: {
+          enabled: () => !!opts.draggable,
+          enable: () => { opts.draggable = true; },
+          disable: () => { opts.draggable = false; }
+        },
+        transform: {
+          enable: () => {},
+          disable: () => {}
+        },
+        trigger: evt => { if (events[evt]) events[evt]({ target: poly }); }
+      };
+      markers.push(poly);
+      return poly;
     }
   };
   dom.window.L.__markers = markers;

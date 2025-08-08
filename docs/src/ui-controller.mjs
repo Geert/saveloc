@@ -12,12 +12,14 @@ import { t } from "../i18n.mjs";
     const labelInput = document.getElementById('locationLabel');
     const latInput = document.getElementById('locationLat');
     const lngInput = document.getElementById('locationLng');
+    const rotInput = document.getElementById('locationRotation');
     if (!section) return;
     showAddForm.lastFocus = document.activeElement;
     idInput.value = data.id || '';
     labelInput.value = data.label || '';
     latInput.value = data.lat || '';
     lngInput.value = data.lng || '';
+    if (rotInput) rotInput.value = data.rotation || 0;
     section.classList.remove('hidden');
     labelInput.focus();
   }
@@ -36,6 +38,7 @@ import { t } from "../i18n.mjs";
     const labelField = document.getElementById('editLocationLabelDrawer');
     const latField = document.getElementById('editLocationLatDrawer');
     const lngField = document.getElementById('editLocationLngDrawer');
+    const rotField = document.getElementById('editLocationRotDrawer');
     if (!drawer || !editSection) return;
     showEditForm.lastFocus = document.activeElement;
     showEditForm.currentId = loc.id;
@@ -46,6 +49,7 @@ import { t } from "../i18n.mjs";
     labelField.value = loc.label || '';
     latField.value = loc.lat;
     lngField.value = loc.lng;
+    if (rotField) rotField.value = loc.rotation || 0;
     labelField.focus();
   }
 
@@ -135,6 +139,7 @@ import { t } from "../i18n.mjs";
     const labelField = document.getElementById('editLocationLabelDrawer');
     const latField = document.getElementById('editLocationLatDrawer');
     const lngField = document.getElementById('editLocationLngDrawer');
+    const rotField = document.getElementById('editLocationRotDrawer');
     const id = idField.value;
     const index = appState.locations.findIndex(l => l.id === id);
     if (index > -1) {
@@ -142,7 +147,8 @@ import { t } from "../i18n.mjs";
         ...appState.locations[index],
         label: labelField.value.trim(),
         lat: parseFloat(latField.value),
-        lng: parseFloat(lngField.value)
+        lng: parseFloat(lngField.value),
+        rotation: parseFloat(rotField.value)
       };
       storage.saveLocations();
       mapModule.renderLocationsList();
@@ -165,8 +171,9 @@ import { t } from "../i18n.mjs";
     if (!showEditForm.currentId) return;
     const lat = parseFloat(document.getElementById('editLocationLatDrawer').value);
     const lng = parseFloat(document.getElementById('editLocationLngDrawer').value);
-    if (!isNaN(lat) && !isNaN(lng)) {
-      mapModule.updateMarkerPosition(showEditForm.currentId, lat, lng);
+    const rot = parseFloat(document.getElementById('editLocationRotDrawer').value);
+    if (!isNaN(lat) && !isNaN(lng) && !isNaN(rot)) {
+      mapModule.updateMarkerPosition(showEditForm.currentId, lat, lng, rot);
     }
   }
 
@@ -188,10 +195,12 @@ import { t } from "../i18n.mjs";
     const labelInput = document.getElementById('locationLabel');
     const latInput = document.getElementById('locationLat');
     const lngInput = document.getElementById('locationLng');
+    const rotInput = document.getElementById('locationRotation');
     const label = labelInput.value.trim();
     const lat = parseFloat(latInput.value);
     const lng = parseFloat(lngInput.value);
-    if (!label || isNaN(lat) || isNaN(lng)) {
+    const rotation = parseFloat(rotInput.value);
+    if (!label || isNaN(lat) || isNaN(lng) || isNaN(rotation)) {
       showNotification(t('invalid_input'), 'error');
       return;
     }
@@ -200,6 +209,7 @@ import { t } from "../i18n.mjs";
       label,
       lat,
       lng,
+      rotation,
       timestamp: new Date().toISOString()
     };
     appState.locations.push(newLocation);
@@ -348,6 +358,7 @@ import { t } from "../i18n.mjs";
     const updateLocationToCurrentBtn = document.getElementById('updateLocationToCurrentBtn');
     const editLocationLatDrawer = document.getElementById('editLocationLatDrawer');
     const editLocationLngDrawer = document.getElementById('editLocationLngDrawer');
+    const editLocationRotDrawer = document.getElementById('editLocationRotDrawer');
    const importXmlBtnTrigger = document.getElementById('importXmlBtnTrigger');
    const importXmlInput = document.getElementById('importXmlInput');
    const forceRefreshBtn = document.getElementById('forceRefreshBtn');
@@ -366,6 +377,7 @@ import { t } from "../i18n.mjs";
     if (updateLocationToCurrentBtn) updateLocationToCurrentBtn.addEventListener('click', updateEditLocationToCurrent);
     if (editLocationLatDrawer) editLocationLatDrawer.addEventListener('input', handleCoordinateInput);
     if (editLocationLngDrawer) editLocationLngDrawer.addEventListener('input', handleCoordinateInput);
+    if (editLocationRotDrawer) editLocationRotDrawer.addEventListener('input', handleCoordinateInput);
     if (importXmlBtnTrigger && importXmlInput) {
       importXmlBtnTrigger.addEventListener('click', () => {
         closeDrawer();

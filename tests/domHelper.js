@@ -11,7 +11,8 @@ module.exports = async function loadDom() {
     .replace(/<script[^>]*src="src\/[^"]*"[^>]*><\/script>/g, '')
     .replace(/<link[^>]*href="style.css"[^>]*>/, '')
     .replace(/<link[^>]*href="vendor\/leaflet\.css"[^>]*>/, '')
-    .replace(/<script[^>]*src="vendor\/leaflet\.js"[^>]*><\/script>/, '');
+    .replace(/<script[^>]*src="vendor\/leaflet\.js"[^>]*><\/script>/, '')
+    .replace(/<script[^>]*src="vendor\/leaflet\.path\.transform\.js"[^>]*><\/script>/, '');
   const dom = new JSDOM(html, { runScripts: 'dangerously', resources: 'usable', url: 'http://localhost' });
 
   // Remove external styles/scripts to avoid network access
@@ -51,18 +52,25 @@ module.exports = async function loadDom() {
   const markers = [];
   dom.window.L = {
     map: () => {
+      const events = {};
+      const makePoint = (x, y) => ({ x, y, distanceTo: p => Math.hypot(x - p.x, y - p.y) });
       const map = {
         center: { lat: 0, lng: 0 },
         zoom: 0,
         setView: (center = [0,0], zoom = 0) => { map.center = { lat: center[0], lng: center[1] }; map.zoom = zoom; return map; },
         getCenter: () => map.center,
         getZoom: () => map.zoom,
-        on: () => map,
+        on: (evt, handler) => { events[evt] = handler; return map; },
+        off: (evt, handler) => { if (events[evt] === handler) delete events[evt]; return map; },
+        trigger: (evt, data={}) => { if (events[evt]) events[evt](data); },
         addLayer: () => map,
         removeLayer: () => map,
         remove: () => {},
         fitBounds: () => {},
-        invalidateSize: () => {}
+        invalidateSize: () => {},
+        latLngToContainerPoint: ll => makePoint(ll.lng, ll.lat),
+        latLngToLayerPoint: ll => makePoint(ll.lng, ll.lat),
+        dragging: { disable: () => {}, enable: () => {} }
       };
       return map;
     },
@@ -92,6 +100,46 @@ module.exports = async function loadDom() {
       };
       markers.push(marker);
       return marker;
+    },
+    polygon: (latLngs = [], opts = {}) => {
+      const events = {};
+      let pts = latLngs.map(ll => ({ lat: ll.lat || ll[0], lng: ll.lng || ll[1] }));
+      let center = { lat: 0, lng: 0 };
+      if (pts.length) {
+        let sumLat = 0, sumLng = 0;
+        pts.forEach(ll => { sumLat += ll.lat; sumLng += ll.lng; });
+        center = { lat: sumLat / pts.length, lng: sumLng / pts.length };
+      }
+      const poly = {
+        options: opts,
+        addTo: () => poly,
+        on: (evt, handler) => { events[evt] = handler; return poly; },
+        getLatLng: () => center,
+        setLatLng: ll => { center = { lat: ll.lat, lng: ll.lng }; },
+        setLatLngs: lls => {
+          pts = lls.map(p => ({ lat: p.lat || p[0], lng: p.lng || p[1] }));
+          if (pts.length) {
+            let sumLat = 0, sumLng = 0;
+            pts.forEach(p => { sumLat += p.lat; sumLng += p.lng; });
+            center = { lat: sumLat / pts.length, lng: sumLng / pts.length };
+          }
+        },
+        getBounds: () => ({ getCenter: () => center }),
+        getLatLngs: () => [pts],
+        locationId: '',
+        dragging: {
+          enabled: () => !!opts.draggable,
+          enable: () => { opts.draggable = true; },
+          disable: () => { opts.draggable = false; }
+        },
+        transform: {
+          enable: () => {},
+          disable: () => {}
+        },
+        trigger: (evt, data={}) => { if (events[evt]) events[evt]({ target: poly, ...data }); }
+      };
+      markers.push(poly);
+      return poly;
     }
   };
   dom.window.L.__markers = markers;

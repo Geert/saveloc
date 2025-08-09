@@ -61,12 +61,94 @@ export function initMap() {
 export function createLabelIcon(labelText, locId) {
   const displayLabel = labelText && labelText.trim() !== '' ? labelText.substring(0, 15) : '📍';
   return L.divIcon({
-    html: `<div class="custom-label-marker-text">${displayLabel.replace(/[<>&'"\\/]/g, c => '&#' + c.charCodeAt(0) + ';')}</div>`,
+    html: `<div class="custom-label-marker-text">${displayLabel.replace(/[<>&'"\\/]/g, c => '&#' + c.charCodeAt(0) + ';')}</div>` ,
     className: 'custom-label-marker location-marker-' + locId,
     iconSize: null,
     iconAnchor: [20, 10],
     popupAnchor: [0, -10]
   });
+}
+
+function meterOffset(lat, lng, dx, dy) {
+  const R = 6378137;
+  const newLat = lat + (dy / R) * (180 / Math.PI);
+  const newLng = lng + (dx / (R * Math.cos((lat * Math.PI) / 180))) * (180 / Math.PI);
+  return [newLat, newLng];
+}
+
+function getStallCorners(lat, lng, rotation = 0) {
+  const halfLength = 2; // meters (4m total)
+  const halfWidth = 0.5; // meters (1m total)
+  const rad = (rotation * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  const pts = [
+    [-halfLength, -halfWidth],
+    [halfLength, -halfWidth],
+    [halfLength, halfWidth],
+    [-halfLength, halfWidth]
+  ];
+  return pts.map(([x, y]) => {
+    const dx = x * cos - y * sin;
+    const dy = x * sin + y * cos;
+    const [nlat, nlng] = meterOffset(lat, lng, dx, dy);
+    return { lat: nlat, lng: nlng };
+  });
+}
+
+function computeRotation(latlngs) {
+  if (!latlngs || latlngs.length < 2) return 0;
+  const p0 = latlngs[0];
+  const p1 = latlngs[1];
+  const dy = p1.lat - p0.lat;
+  const dx = (p1.lng - p0.lng) * Math.cos((p0.lat * Math.PI) / 180);
+  const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+  return angle;
+}
+
+function enableCornerRotation(poly, loc, updateFromPoly) {
+  let rotating = false;
+  let startAngle = 0;
+  let startRotation = loc.rotation || 0;
+  let centerPoint = null;
+
+  const onMouseDown = e => {
+    if (!appState.isInEditMode || !appState.map) return;
+    const click = e.containerPoint;
+    const corners = poly.getLatLngs()[0].map(ll => appState.map.latLngToContainerPoint(ll));
+    const near = corners.some(pt => pt.distanceTo(click) < 10);
+    if (!near) return;
+    rotating = true;
+    centerPoint = appState.map.latLngToContainerPoint(poly.getBounds().getCenter());
+    startAngle = Math.atan2(click.y - centerPoint.y, click.x - centerPoint.x);
+    startRotation = loc.rotation || 0;
+    appState.map.dragging && appState.map.dragging.disable && appState.map.dragging.disable();
+    appState.map.on('mousemove', onMouseMove);
+    appState.map.on('mouseup', onMouseUp);
+    if (L.DomEvent && L.DomEvent.stop) L.DomEvent.stop(e);
+  };
+
+  const onMouseMove = e => {
+    if (!rotating) return;
+    const move = e.containerPoint;
+    const angle = Math.atan2(move.y - centerPoint.y, move.x - centerPoint.x);
+    const delta = (angle - startAngle) * 180 / Math.PI;
+    const newRot = startRotation + delta;
+    loc.rotation = newRot;
+    const newCorners = getStallCorners(loc.lat, loc.lng, newRot);
+    poly.setLatLngs(newCorners);
+  };
+
+  const onMouseUp = () => {
+    if (!rotating) return;
+    rotating = false;
+    appState.map.dragging && appState.map.dragging.enable && appState.map.dragging.enable();
+    appState.map.off('mousemove', onMouseMove);
+    appState.map.off('mouseup', onMouseUp);
+    updateFromPoly({ target: poly });
+  };
+
+  poly.on('mousedown', onMouseDown);
 }
 
 export function renderLocationsList() {
@@ -103,22 +185,32 @@ export function renderLocationsList() {
       list.appendChild(li);
     }
     if (appState.map && appState.markersLayer) {
-      const marker = L.marker([loc.lat, loc.lng], {
-        icon: createLabelIcon(loc.label, loc.id),
+      const corners = getStallCorners(loc.lat, loc.lng, loc.rotation || 0);
+      const poly = L.polygon(corners, {
+        color: 'orange',
         draggable: appState.isInEditMode
       }).addTo(appState.markersLayer);
-      marker.locationId = loc.id;
-      if (markerClickHandler) marker.on('contextmenu', () => markerClickHandler(loc));
-      marker.on('dragend', evt => {
-        const m = evt.target.getLatLng();
+      poly.locationId = loc.id;
+      if (poly.transform && appState.isInEditMode) {
+        poly.transform.enable({ rotation: false, draggable: true, scaling: false });
+      }
+      if (markerClickHandler) poly.on('contextmenu', () => markerClickHandler(loc));
+      const updateFromPoly = evt => {
+        const p = evt.target;
+        const center = p.getBounds().getCenter();
         const idx = appState.locations.findIndex(l => l.id === loc.id);
         if (idx > -1) {
-          appState.locations[idx].lat = m.lat;
-          appState.locations[idx].lng = m.lng;
+          appState.locations[idx].lat = center.lat;
+          appState.locations[idx].lng = center.lng;
+          const latlngs = p.getLatLngs()[0] || [];
+          appState.locations[idx].rotation = computeRotation(latlngs);
           saveLocations();
         }
-      });
-      appState.markers[loc.id] = marker;
+      };
+      poly.on('dragend', updateFromPoly);
+      poly.on('transformend', updateFromPoly);
+      enableCornerRotation(poly, loc, updateFromPoly);
+      appState.markers[loc.id] = poly;
       bounds.push([loc.lat, loc.lng]);
     }
   });
@@ -138,10 +230,11 @@ export function setMarkerClickHandler(fn) {
   markerClickHandler = fn;
 }
 
-export function updateMarkerPosition(id, lat, lng) {
-  const marker = appState.markers[id];
-  if (marker) {
-    marker.setLatLng({ lat, lng });
+export function updateMarkerPosition(id, lat, lng, rotation = 0) {
+  const poly = appState.markers[id];
+  if (poly) {
+    const corners = getStallCorners(lat, lng, rotation);
+    poly.setLatLngs(corners);
   }
 }
 
@@ -161,4 +254,3 @@ export function setBaseLayer(name) {
   currentBaseLayerName = name;
   localStorage.setItem(PREFERRED_MAP_LAYER_KEY, name);
 }
-

@@ -6,18 +6,60 @@ import * as mapModule from "./map.mjs";
 import { requestLocationPermission } from "./permission.mjs";
 import { t } from "../i18n.mjs";
 
+  async function fetchNearestRoadBearing(lat, lng) {
+    const query = `[out:json];way(around:30,${lat},${lng})[highway];out geom;`;
+    const url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query);
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.elements && data.elements.length) {
+        let bestAngle = 0;
+        let bestDist = Infinity;
+        data.elements.forEach(el => {
+          if (!el.geometry || el.geometry.length < 2) return;
+          for (let i = 0; i < el.geometry.length - 1; i++) {
+            const p0 = el.geometry[i];
+            const p1 = el.geometry[i + 1];
+            const dy = p1.lat - p0.lat;
+            const dx = (p1.lon - p0.lon) * Math.cos((p0.lat * Math.PI) / 180);
+            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+            const dist = Math.hypot((p0.lat + p1.lat) / 2 - lat, (p0.lon + p1.lon) / 2 - lng);
+            if (dist < bestDist) {
+              bestDist = dist;
+              bestAngle = angle;
+            }
+          }
+        });
+        return bestAngle;
+      }
+    } catch (e) {
+      // ignore errors
+    }
+    return 0;
+  }
+
+  async function autoRotateZeroLocations() {
+    for (const loc of appState.locations) {
+      if (!loc.rotation || loc.rotation === 0) {
+        loc.rotation = await fetchNearestRoadBearing(loc.lat, loc.lng);
+      }
+    }
+  }
+
   function showAddForm(data = {}) {
     const section = document.getElementById('location-form-section');
     const idInput = document.getElementById('locationId');
     const labelInput = document.getElementById('locationLabel');
     const latInput = document.getElementById('locationLat');
     const lngInput = document.getElementById('locationLng');
+    const rotInput = document.getElementById('locationRotation');
     if (!section) return;
     showAddForm.lastFocus = document.activeElement;
     idInput.value = data.id || '';
     labelInput.value = data.label || '';
     latInput.value = data.lat || '';
     lngInput.value = data.lng || '';
+    if (rotInput) rotInput.value = data.rotation || 0;
     section.classList.remove('hidden');
     labelInput.focus();
   }
@@ -36,6 +78,7 @@ import { t } from "../i18n.mjs";
     const labelField = document.getElementById('editLocationLabelDrawer');
     const latField = document.getElementById('editLocationLatDrawer');
     const lngField = document.getElementById('editLocationLngDrawer');
+    const rotField = document.getElementById('editLocationRotDrawer');
     if (!drawer || !editSection) return;
     showEditForm.lastFocus = document.activeElement;
     showEditForm.currentId = loc.id;
@@ -46,6 +89,7 @@ import { t } from "../i18n.mjs";
     labelField.value = loc.label || '';
     latField.value = loc.lat;
     lngField.value = loc.lng;
+    if (rotField) rotField.value = loc.rotation || 0;
     labelField.focus();
   }
 
@@ -135,6 +179,7 @@ import { t } from "../i18n.mjs";
     const labelField = document.getElementById('editLocationLabelDrawer');
     const latField = document.getElementById('editLocationLatDrawer');
     const lngField = document.getElementById('editLocationLngDrawer');
+    const rotField = document.getElementById('editLocationRotDrawer');
     const id = idField.value;
     const index = appState.locations.findIndex(l => l.id === id);
     if (index > -1) {
@@ -142,7 +187,8 @@ import { t } from "../i18n.mjs";
         ...appState.locations[index],
         label: labelField.value.trim(),
         lat: parseFloat(latField.value),
-        lng: parseFloat(lngField.value)
+        lng: parseFloat(lngField.value),
+        rotation: parseFloat(rotField.value)
       };
       storage.saveLocations();
       mapModule.renderLocationsList();
@@ -165,8 +211,9 @@ import { t } from "../i18n.mjs";
     if (!showEditForm.currentId) return;
     const lat = parseFloat(document.getElementById('editLocationLatDrawer').value);
     const lng = parseFloat(document.getElementById('editLocationLngDrawer').value);
-    if (!isNaN(lat) && !isNaN(lng)) {
-      mapModule.updateMarkerPosition(showEditForm.currentId, lat, lng);
+    const rot = parseFloat(document.getElementById('editLocationRotDrawer').value);
+    if (!isNaN(lat) && !isNaN(lng) && !isNaN(rot)) {
+      mapModule.updateMarkerPosition(showEditForm.currentId, lat, lng, rot);
     }
   }
 
@@ -188,10 +235,12 @@ import { t } from "../i18n.mjs";
     const labelInput = document.getElementById('locationLabel');
     const latInput = document.getElementById('locationLat');
     const lngInput = document.getElementById('locationLng');
+    const rotInput = document.getElementById('locationRotation');
     const label = labelInput.value.trim();
     const lat = parseFloat(latInput.value);
     const lng = parseFloat(lngInput.value);
-    if (!label || isNaN(lat) || isNaN(lng)) {
+    const rotation = parseFloat(rotInput.value);
+    if (!label || isNaN(lat) || isNaN(lng) || isNaN(rotation)) {
       showNotification(t('invalid_input'), 'error');
       return;
     }
@@ -200,6 +249,7 @@ import { t } from "../i18n.mjs";
       label,
       lat,
       lng,
+      rotation,
       timestamp: new Date().toISOString()
     };
     appState.locations.push(newLocation);
@@ -242,6 +292,9 @@ import { t } from "../i18n.mjs";
       const label = xmlDoc.createElement('label');
       label.textContent = loc.label || '';
       plaats.appendChild(label);
+      const rotation = xmlDoc.createElement('rotation');
+      rotation.textContent = loc.rotation || 0;
+      plaats.appendChild(rotation);
       xmlDoc.documentElement.appendChild(plaats);
     });
     const serializer = new XMLSerializer();
@@ -283,55 +336,72 @@ import { t } from "../i18n.mjs";
     const file = event.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = function(e) {
-      try {
-        const xmlString = e.target.result;
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlString, 'application/xml');
-        const errorNode = xmlDoc.querySelector('parsererror');
-        if (errorNode) {
-          showNotification(t('error_parsing_xml'), 'error');
-          return;
-        }
-        const plaatsElements = xmlDoc.getElementsByTagName('plaatsen');
-        if (plaatsElements.length === 0) {
-          showNotification(t('no_locations_in_file'), 'info');
-          return;
-        }
-        appState.locations = [];
-        let importedCount = 0;
-        for (let i = 0; i < plaatsElements.length; i++) {
-          const plaats = plaatsElements[i];
-          const idNode = plaats.getElementsByTagName('id')[0];
-          const latNode = plaats.getElementsByTagName('lat')[0];
-          const lngNode = plaats.getElementsByTagName('lng')[0];
-          const labelNode = plaats.getElementsByTagName('label')[0];
-          if (idNode && latNode && lngNode) {
-            const lat = parseFloat(latNode.textContent);
-            const lng = parseFloat(lngNode.textContent);
-            let label = labelNode ? labelNode.textContent : '';
-            if (isNaN(lat) || isNaN(lng)) continue;
-            if (!label && idNode.textContent) label = idNode.textContent;
-            appState.locations.push({ id: Date.now().toString() + '_' + i, label, lat, lng, timestamp: new Date().toISOString() });
-            importedCount++;
+    return new Promise(resolve => {
+      reader.onload = async function(e) {
+        try {
+          const xmlString = e.target.result;
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(xmlString, 'application/xml');
+          const errorNode = xmlDoc.querySelector('parsererror');
+          if (errorNode) {
+            showNotification(t('error_parsing_xml'), 'error');
+            return;
           }
+          const plaatsElements = xmlDoc.getElementsByTagName('plaatsen');
+          if (plaatsElements.length === 0) {
+            showNotification(t('no_locations_in_file'), 'info');
+            return;
+          }
+          appState.locations = [];
+          let importedCount = 0;
+          for (let i = 0; i < plaatsElements.length; i++) {
+            const plaats = plaatsElements[i];
+            const idNode = plaats.getElementsByTagName('id')[0];
+            const latNode = plaats.getElementsByTagName('lat')[0];
+            const lngNode = plaats.getElementsByTagName('lng')[0];
+            const labelNode = plaats.getElementsByTagName('label')[0];
+            const rotNode = plaats.getElementsByTagName('rotation')[0];
+            if (idNode && latNode && lngNode) {
+              const lat = parseFloat(latNode.textContent);
+              const lng = parseFloat(lngNode.textContent);
+              let label = labelNode ? labelNode.textContent : '';
+              const rotation = rotNode ? parseFloat(rotNode.textContent) : 0;
+              if (isNaN(lat) || isNaN(lng)) continue;
+              if (!label && idNode.textContent) label = idNode.textContent;
+              appState.locations.push({ id: Date.now().toString() + '_' + i, label, lat, lng, rotation, timestamp: new Date().toISOString() });
+              importedCount++;
+            }
+          }
+          if (importedCount > 0) {
+            await autoRotateZeroLocations();
+            storage.saveLocations();
+            mapModule.renderLocationsList();
+            showNotification(t('locations_imported', { count: importedCount }), 'success');
+          }
+        } catch (error) {
+          showNotification(t('an_error_occurred'), 'error');
         }
-        if (importedCount > 0) {
-          storage.saveLocations();
-          mapModule.renderLocationsList();
-          showNotification(t('locations_imported', { count: importedCount }), 'success');
-        }
-      } catch (error) {
-        showNotification(t('an_error_occurred'), 'error');
-      }
-      event.target.value = null;
-      closeDrawer();
-    };
-    reader.onerror = function() {
-      showNotification(t('error_reading_file'), 'error');
-      event.target.value = null;
-    };
-    reader.readAsText(file);
+        event.target.value = null;
+        closeDrawer();
+        resolve();
+      };
+      reader.onerror = function() {
+        showNotification(t('error_reading_file'), 'error');
+        event.target.value = null;
+        resolve();
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  function adjustRotation(inputId, delta) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const current = parseFloat(input.value) || 0;
+    let next = (current + delta) % 360;
+    if (next < 0) next += 360;
+    input.value = next;
+    input.dispatchEvent(new Event('input'));
   }
 
   function attachEventListeners() {
@@ -348,10 +418,15 @@ import { t } from "../i18n.mjs";
     const updateLocationToCurrentBtn = document.getElementById('updateLocationToCurrentBtn');
     const editLocationLatDrawer = document.getElementById('editLocationLatDrawer');
     const editLocationLngDrawer = document.getElementById('editLocationLngDrawer');
-   const importXmlBtnTrigger = document.getElementById('importXmlBtnTrigger');
-   const importXmlInput = document.getElementById('importXmlInput');
-   const forceRefreshBtn = document.getElementById('forceRefreshBtn');
-   const mapLayerSelect = document.getElementById('mapLayerSelect');
+    const editLocationRotDrawer = document.getElementById('editLocationRotDrawer');
+    const rotateLeftAddBtn = document.getElementById('rotateLeftAddBtn');
+    const rotateRightAddBtn = document.getElementById('rotateRightAddBtn');
+    const rotateLeftDrawerBtn = document.getElementById('rotateLeftDrawerBtn');
+    const rotateRightDrawerBtn = document.getElementById('rotateRightDrawerBtn');
+    const importXmlBtnTrigger = document.getElementById('importXmlBtnTrigger');
+    const importXmlInput = document.getElementById('importXmlInput');
+    const forceRefreshBtn = document.getElementById('forceRefreshBtn');
+    const mapLayerSelect = document.getElementById('mapLayerSelect');
 
     if (saveLocationBtn) saveLocationBtn.addEventListener('click', addOrUpdateLocation);
     if (cancelFormBtn) cancelFormBtn.addEventListener('click', hideAddForm);
@@ -366,6 +441,11 @@ import { t } from "../i18n.mjs";
     if (updateLocationToCurrentBtn) updateLocationToCurrentBtn.addEventListener('click', updateEditLocationToCurrent);
     if (editLocationLatDrawer) editLocationLatDrawer.addEventListener('input', handleCoordinateInput);
     if (editLocationLngDrawer) editLocationLngDrawer.addEventListener('input', handleCoordinateInput);
+    if (editLocationRotDrawer) editLocationRotDrawer.addEventListener('input', handleCoordinateInput);
+    if (rotateLeftAddBtn) rotateLeftAddBtn.addEventListener('click', () => adjustRotation('locationRotation', -15));
+    if (rotateRightAddBtn) rotateRightAddBtn.addEventListener('click', () => adjustRotation('locationRotation', 15));
+    if (rotateLeftDrawerBtn) rotateLeftDrawerBtn.addEventListener('click', () => adjustRotation('editLocationRotDrawer', -15));
+    if (rotateRightDrawerBtn) rotateRightDrawerBtn.addEventListener('click', () => adjustRotation('editLocationRotDrawer', 15));
     if (importXmlBtnTrigger && importXmlInput) {
       importXmlBtnTrigger.addEventListener('click', () => {
         closeDrawer();
@@ -433,7 +513,9 @@ import { t } from "../i18n.mjs";
     setBaseLayer: mapModule.setBaseLayer,
     getBaseLayerNames: mapModule.getBaseLayerNames,
     getCurrentBaseLayerName: mapModule.getCurrentBaseLayerName,
-    forceRefresh
+    forceRefresh,
+    setEditMode: val => { appState.isInEditMode = val; },
+    getMap: () => appState.map
   };
 
 export default { init, testApi };

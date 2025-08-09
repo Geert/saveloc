@@ -59,8 +59,10 @@ test('import action closes the drawer', async () => {
   expect(drawer.classList.contains('visible')).toBe(true);
   const xml = `<?xml version="1.0"?><root><plaatsen><id>1</id><lat>10</lat><lng>20</lng><label>Home</label></plaatsen></root>`;
   const event = { target: { files: [createFile(xml)] } };
-  saveLocTest.handleFileImport(event);
-  await new Promise(res => setTimeout(res, 50));
+  const originalFetch = global.fetch;
+  global.fetch = jest.fn().mockResolvedValue({ json: () => Promise.resolve({ elements: [] }) });
+  await saveLocTest.handleFileImport(event);
+  global.fetch = originalFetch;
   expect(drawer.classList.contains('visible')).toBe(false);
 });
 

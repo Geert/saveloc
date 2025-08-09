@@ -52,18 +52,25 @@ module.exports = async function loadDom() {
   const markers = [];
   dom.window.L = {
     map: () => {
+      const events = {};
+      const makePoint = (x, y) => ({ x, y, distanceTo: p => Math.hypot(x - p.x, y - p.y) });
       const map = {
         center: { lat: 0, lng: 0 },
         zoom: 0,
         setView: (center = [0,0], zoom = 0) => { map.center = { lat: center[0], lng: center[1] }; map.zoom = zoom; return map; },
         getCenter: () => map.center,
         getZoom: () => map.zoom,
-        on: () => map,
+        on: (evt, handler) => { events[evt] = handler; return map; },
+        off: (evt, handler) => { if (events[evt] === handler) delete events[evt]; return map; },
+        trigger: (evt, data={}) => { if (events[evt]) events[evt](data); },
         addLayer: () => map,
         removeLayer: () => map,
         remove: () => {},
         fitBounds: () => {},
-        invalidateSize: () => {}
+        invalidateSize: () => {},
+        latLngToContainerPoint: ll => makePoint(ll.lng, ll.lat),
+        latLngToLayerPoint: ll => makePoint(ll.lng, ll.lat),
+        dragging: { disable: () => {}, enable: () => {} }
       };
       return map;
     },
@@ -96,11 +103,12 @@ module.exports = async function loadDom() {
     },
     polygon: (latLngs = [], opts = {}) => {
       const events = {};
+      let pts = latLngs.map(ll => ({ lat: ll.lat || ll[0], lng: ll.lng || ll[1] }));
       let center = { lat: 0, lng: 0 };
-      if (Array.isArray(latLngs) && latLngs.length) {
+      if (pts.length) {
         let sumLat = 0, sumLng = 0;
-        latLngs.forEach(ll => { sumLat += ll.lat || ll[0]; sumLng += ll.lng || ll[1]; });
-        center = { lat: sumLat / latLngs.length, lng: sumLng / latLngs.length };
+        pts.forEach(ll => { sumLat += ll.lat; sumLng += ll.lng; });
+        center = { lat: sumLat / pts.length, lng: sumLng / pts.length };
       }
       const poly = {
         options: opts,
@@ -109,14 +117,15 @@ module.exports = async function loadDom() {
         getLatLng: () => center,
         setLatLng: ll => { center = { lat: ll.lat, lng: ll.lng }; },
         setLatLngs: lls => {
-          if (Array.isArray(lls) && lls.length) {
+          pts = lls.map(p => ({ lat: p.lat || p[0], lng: p.lng || p[1] }));
+          if (pts.length) {
             let sumLat = 0, sumLng = 0;
-            lls.forEach(p => { sumLat += p.lat || p[0]; sumLng += p.lng || p[1]; });
-            center = { lat: sumLat / lls.length, lng: sumLng / lls.length };
+            pts.forEach(p => { sumLat += p.lat; sumLng += p.lng; });
+            center = { lat: sumLat / pts.length, lng: sumLng / pts.length };
           }
         },
         getBounds: () => ({ getCenter: () => center }),
-        getLatLngs: () => [[{ lat: center.lat, lng: center.lng }]],
+        getLatLngs: () => [pts],
         locationId: '',
         dragging: {
           enabled: () => !!opts.draggable,
@@ -127,7 +136,7 @@ module.exports = async function loadDom() {
           enable: () => {},
           disable: () => {}
         },
-        trigger: evt => { if (events[evt]) events[evt]({ target: poly }); }
+        trigger: (evt, data={}) => { if (events[evt]) events[evt]({ target: poly, ...data }); }
       };
       markers.push(poly);
       return poly;

@@ -106,6 +106,51 @@ function computeRotation(latlngs) {
   return angle;
 }
 
+function enableCornerRotation(poly, loc, updateFromPoly) {
+  let rotating = false;
+  let startAngle = 0;
+  let startRotation = loc.rotation || 0;
+  let centerPoint = null;
+
+  const onMouseDown = e => {
+    if (!appState.isInEditMode || !appState.map) return;
+    const click = e.containerPoint;
+    const corners = poly.getLatLngs()[0].map(ll => appState.map.latLngToContainerPoint(ll));
+    const near = corners.some(pt => pt.distanceTo(click) < 10);
+    if (!near) return;
+    rotating = true;
+    centerPoint = appState.map.latLngToContainerPoint(poly.getBounds().getCenter());
+    startAngle = Math.atan2(click.y - centerPoint.y, click.x - centerPoint.x);
+    startRotation = loc.rotation || 0;
+    appState.map.dragging && appState.map.dragging.disable && appState.map.dragging.disable();
+    appState.map.on('mousemove', onMouseMove);
+    appState.map.on('mouseup', onMouseUp);
+    if (L.DomEvent && L.DomEvent.stop) L.DomEvent.stop(e);
+  };
+
+  const onMouseMove = e => {
+    if (!rotating) return;
+    const move = e.containerPoint;
+    const angle = Math.atan2(move.y - centerPoint.y, move.x - centerPoint.x);
+    const delta = (angle - startAngle) * 180 / Math.PI;
+    const newRot = startRotation + delta;
+    loc.rotation = newRot;
+    const newCorners = getStallCorners(loc.lat, loc.lng, newRot);
+    poly.setLatLngs(newCorners);
+  };
+
+  const onMouseUp = () => {
+    if (!rotating) return;
+    rotating = false;
+    appState.map.dragging && appState.map.dragging.enable && appState.map.dragging.enable();
+    appState.map.off('mousemove', onMouseMove);
+    appState.map.off('mouseup', onMouseUp);
+    updateFromPoly({ target: poly });
+  };
+
+  poly.on('mousedown', onMouseDown);
+}
+
 export function renderLocationsList() {
   const list = document.getElementById('locationsList');
   const message = document.getElementById('no-locations-message');
@@ -147,7 +192,7 @@ export function renderLocationsList() {
       }).addTo(appState.markersLayer);
       poly.locationId = loc.id;
       if (poly.transform && appState.isInEditMode) {
-        poly.transform.enable({ rotation: true, draggable: true, scaling: false });
+        poly.transform.enable({ rotation: false, draggable: true, scaling: false });
       }
       if (markerClickHandler) poly.on('contextmenu', () => markerClickHandler(loc));
       const updateFromPoly = evt => {
@@ -164,6 +209,7 @@ export function renderLocationsList() {
       };
       poly.on('dragend', updateFromPoly);
       poly.on('transformend', updateFromPoly);
+      enableCornerRotation(poly, loc, updateFromPoly);
       appState.markers[loc.id] = poly;
       bounds.push([loc.lat, loc.lng]);
     }

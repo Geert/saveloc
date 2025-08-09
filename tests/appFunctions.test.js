@@ -90,6 +90,21 @@ test('rotate buttons adjust edit drawer rotation', () => {
   expect(rotField.value).toBe('0');
 });
 
+test('dragging a corner rotates the stall', () => {
+  const loc = { id: '1', lat: 0, lng: 0, label: 'A', rotation: 0 };
+  saveLocTest.setLocations([loc]);
+  saveLocTest.setEditMode(true);
+  saveLocTest.renderLocationsList();
+  const map = saveLocTest.getMap();
+  const poly = window.L.__markers.find(m => m.locationId === '1');
+  const corner = poly.getLatLngs()[0][0];
+  const start = map.latLngToContainerPoint(corner);
+  poly.trigger('mousedown', { containerPoint: start });
+  map.trigger('mousemove', { containerPoint: { x: start.x, y: start.y + 1 } });
+  map.trigger('mouseup', {});
+  expect(saveLocTest.getLocations()[0].rotation).not.toBe(0);
+});
+
 test('clearAllLocations empties stored locations when confirmed', () => {
   saveLocTest.setLocations([{ id: '1', lat: 1, lng: 2, label: 'A' }]);
   window.confirm = jest.fn(() => true);

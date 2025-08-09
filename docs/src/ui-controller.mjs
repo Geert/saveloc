@@ -513,7 +513,9 @@ import { t } from "../i18n.mjs";
     setBaseLayer: mapModule.setBaseLayer,
     getBaseLayerNames: mapModule.getBaseLayerNames,
     getCurrentBaseLayerName: mapModule.getCurrentBaseLayerName,
-    forceRefresh
+    forceRefresh,
+    setEditMode: val => { appState.isInEditMode = val; },
+    getMap: () => appState.map
   };
 
 export default { init, testApi };

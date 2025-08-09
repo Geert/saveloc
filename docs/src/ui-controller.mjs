@@ -394,6 +394,16 @@ import { t } from "../i18n.mjs";
     });
   }
 
+  function adjustRotation(inputId, delta) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const current = parseFloat(input.value) || 0;
+    let next = (current + delta) % 360;
+    if (next < 0) next += 360;
+    input.value = next;
+    input.dispatchEvent(new Event('input'));
+  }
+
   function attachEventListeners() {
     const saveLocationBtn = document.getElementById('saveLocationBtn');
     const cancelFormBtn = document.getElementById('cancelFormBtn');
@@ -409,10 +419,14 @@ import { t } from "../i18n.mjs";
     const editLocationLatDrawer = document.getElementById('editLocationLatDrawer');
     const editLocationLngDrawer = document.getElementById('editLocationLngDrawer');
     const editLocationRotDrawer = document.getElementById('editLocationRotDrawer');
-   const importXmlBtnTrigger = document.getElementById('importXmlBtnTrigger');
-   const importXmlInput = document.getElementById('importXmlInput');
-   const forceRefreshBtn = document.getElementById('forceRefreshBtn');
-   const mapLayerSelect = document.getElementById('mapLayerSelect');
+    const rotateLeftAddBtn = document.getElementById('rotateLeftAddBtn');
+    const rotateRightAddBtn = document.getElementById('rotateRightAddBtn');
+    const rotateLeftDrawerBtn = document.getElementById('rotateLeftDrawerBtn');
+    const rotateRightDrawerBtn = document.getElementById('rotateRightDrawerBtn');
+    const importXmlBtnTrigger = document.getElementById('importXmlBtnTrigger');
+    const importXmlInput = document.getElementById('importXmlInput');
+    const forceRefreshBtn = document.getElementById('forceRefreshBtn');
+    const mapLayerSelect = document.getElementById('mapLayerSelect');
 
     if (saveLocationBtn) saveLocationBtn.addEventListener('click', addOrUpdateLocation);
     if (cancelFormBtn) cancelFormBtn.addEventListener('click', hideAddForm);
@@ -428,6 +442,10 @@ import { t } from "../i18n.mjs";
     if (editLocationLatDrawer) editLocationLatDrawer.addEventListener('input', handleCoordinateInput);
     if (editLocationLngDrawer) editLocationLngDrawer.addEventListener('input', handleCoordinateInput);
     if (editLocationRotDrawer) editLocationRotDrawer.addEventListener('input', handleCoordinateInput);
+    if (rotateLeftAddBtn) rotateLeftAddBtn.addEventListener('click', () => adjustRotation('locationRotation', -15));
+    if (rotateRightAddBtn) rotateRightAddBtn.addEventListener('click', () => adjustRotation('locationRotation', 15));
+    if (rotateLeftDrawerBtn) rotateLeftDrawerBtn.addEventListener('click', () => adjustRotation('editLocationRotDrawer', -15));
+    if (rotateRightDrawerBtn) rotateRightDrawerBtn.addEventListener('click', () => adjustRotation('editLocationRotDrawer', 15));
     if (importXmlBtnTrigger && importXmlInput) {
       importXmlBtnTrigger.addEventListener('click', () => {
         closeDrawer();

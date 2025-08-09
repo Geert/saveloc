@@ -69,6 +69,27 @@ test('addOrUpdateLocation adds new location from modal inputs', () => {
   expect(formHidden).toBe(true);
 });
 
+test('rotate buttons adjust add form rotation', () => {
+  const rot = document.getElementById('locationRotation');
+  rot.value = '0';
+  document.getElementById('rotateRightAddBtn').click();
+  expect(rot.value).toBe('15');
+  document.getElementById('rotateLeftAddBtn').click();
+  expect(rot.value).toBe('0');
+});
+
+test('rotate buttons adjust edit drawer rotation', () => {
+  const loc = { id: '1', lat: 1, lng: 2, label: 'A', rotation: 0 };
+  saveLocTest.setLocations([loc]);
+  saveLocTest.renderLocationsList();
+  saveLocTest.showEditForm(loc);
+  const rotField = document.getElementById('editLocationRotDrawer');
+  document.getElementById('rotateRightDrawerBtn').click();
+  expect(rotField.value).toBe('15');
+  document.getElementById('rotateLeftDrawerBtn').click();
+  expect(rotField.value).toBe('0');
+});
+
 test('clearAllLocations empties stored locations when confirmed', () => {
   saveLocTest.setLocations([{ id: '1', lat: 1, lng: 2, label: 'A' }]);
   window.confirm = jest.fn(() => true);

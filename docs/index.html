@@ -56,7 +56,11 @@
                 </div>
                 <div>
                 <label for="editLocationRotDrawer" data-i18n="rotation">Rotation:</label>
+                <div class="rotation-input-group">
                 <input type="number" id="editLocationRotDrawer" step="1">
+                <button type="button" id="rotateLeftDrawerBtn" aria-label="Rotate left">⟲</button>
+                <button type="button" id="rotateRightDrawerBtn" aria-label="Rotate right">⟳</button>
+                </div>
                 </div>
                 <div class="form-buttons-container">
                     <button type="button" id="updateLocationToCurrentBtn" class="btn btn-update" data-i18n="update_to_current">🎯 Update to Current</button>
@@ -86,7 +90,11 @@
             </div>
             <div>
                 <label for="locationRotation" data-i18n="rotation">Rotation:</label>
+                <div class="rotation-input-group">
                 <input type="number" id="locationRotation" step="1" value="0">
+                <button type="button" id="rotateLeftAddBtn" aria-label="Rotate left">⟲</button>
+                <button type="button" id="rotateRightAddBtn" aria-label="Rotate right">⟳</button>
+                </div>
             </div>
             <div class="form-buttons-container">
                 <button type="button" id="saveLocationBtn" class="btn btn-primary" data-i18n="save_location">Save Location</button>
